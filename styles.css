@@ -160,6 +160,116 @@ button {
   100% { transform: translate(-20px, 22px) scale(0.95); }
 }
 
+/* Pastel Bento liquid: four soft color pools move independently and blend.
+   Only transforms animate; no canvas, animated blur, or per-frame JavaScript. */
+html[data-active-theme="default"] .ambient-bg {
+  isolation: isolate;
+  contain: strict;
+  background: var(--bg-page);
+}
+html[data-active-theme="default"] .ambient-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 48% 42%, #FAF6EC88, transparent 74%);
+  z-index: 1;
+}
+html[data-active-theme="default"] .ambient-blob {
+  filter: blur(64px);
+  opacity: .72;
+  mix-blend-mode: multiply;
+  will-change: transform;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+html[data-active-theme="default"] .blob-yellow {
+  width: clamp(460px, 70vmax, 1100px);
+  height: clamp(380px, 54vmax, 850px);
+  top: -18%; left: -14%;
+  border-radius: 42% 58% 65% 35% / 55% 40% 60% 45%;
+  background: radial-gradient(ellipse at 45% 45%, var(--butter-yellow) 18%, #F7DF8380 65%, transparent 76%);
+  animation-name: liquidButter;
+  animation-duration: 24s;
+  animation-delay: -7s;
+}
+html[data-active-theme="default"] .blob-pink {
+  width: clamp(430px, 66vmax, 1000px);
+  height: clamp(360px, 58vmax, 900px);
+  top: 8%; right: -18%;
+  border-radius: 60% 40% 35% 65% / 40% 52% 48% 60%;
+  background: radial-gradient(ellipse at 50% 45%, var(--pastel-pink) 18%, #F3B9DF80 64%, transparent 77%);
+  animation-name: liquidBlush;
+  animation-duration: 29s;
+  animation-delay: -15s;
+}
+html[data-active-theme="default"] .blob-lavender {
+  width: clamp(450px, 72vmax, 1100px);
+  height: clamp(380px, 54vmax, 850px);
+  bottom: -18%; left: -8%;
+  border-radius: 40% 60% 58% 42% / 62% 38% 62% 38%;
+  background: radial-gradient(ellipse at 42% 48%, var(--lavender-card) 14%, var(--periwinkle-blue) 45%, #B8CFF660 67%, transparent 78%);
+  animation-name: liquidLavender;
+  animation-duration: 33s;
+  animation-delay: -23s;
+}
+html[data-active-theme="default"] .blob-mint {
+  width: clamp(390px, 58vmax, 900px);
+  height: clamp(360px, 52vmax, 800px);
+  bottom: -16%; right: -12%;
+  border-radius: 64% 36% 45% 55% / 38% 60% 40% 62%;
+  background: radial-gradient(ellipse at 48% 46%, #9FAF67B3 8%, var(--bento-mint) 42%, #BEE3E560 66%, transparent 78%);
+  animation-name: liquidSage;
+  animation-duration: 27s;
+  animation-delay: -11s;
+}
+@keyframes liquidButter {
+  0% { transform: translate3d(-3vw, -4vh, 0) rotate(-14deg) scale(1.04); }
+  50% { transform: translate3d(17vw, 14vh, 0) rotate(18deg) scale(1.18, .94); }
+  100% { transform: translate3d(5vw, 33vh, 0) rotate(42deg) scale(.96, 1.14); }
+}
+@keyframes liquidBlush {
+  0% { transform: translate3d(5vw, -8vh, 0) rotate(12deg) scale(1.1, .95); }
+  50% { transform: translate3d(-18vw, 18vh, 0) rotate(-24deg) scale(.98, 1.16); }
+  100% { transform: translate3d(-5vw, 37vh, 0) rotate(-45deg) scale(1.16, .96); }
+}
+@keyframes liquidLavender {
+  0% { transform: translate3d(-5vw, 4vh, 0) rotate(-8deg) scale(1.12); }
+  50% { transform: translate3d(26vw, -17vh, 0) rotate(22deg) scale(.98, 1.15); }
+  100% { transform: translate3d(12vw, -35vh, 0) rotate(44deg) scale(1.15, .94); }
+}
+@keyframes liquidSage {
+  0% { transform: translate3d(7vw, 7vh, 0) rotate(22deg) scale(.98, 1.1); }
+  50% { transform: translate3d(-22vw, -8vh, 0) rotate(-12deg) scale(1.18, .96); }
+  100% { transform: translate3d(-7vw, -34vh, 0) rotate(-38deg) scale(1.02, 1.16); }
+}
+html[data-color-mode="dark"][data-active-theme="default"] .ambient-bg { background: #0F1117; }
+html[data-color-mode="dark"][data-active-theme="default"] .ambient-bg::before { background: #0F11174D; }
+html[data-color-mode="dark"][data-active-theme="default"] .ambient-blob { opacity: .2; mix-blend-mode: screen; }
+@media (max-width: 720px) {
+  html[data-active-theme="default"] .ambient-blob { width: 110vw; height: 70vh; filter: blur(42px); }
+}
+
+.weekly-pending-verification {
+  margin-top: 4px;
+  font-size: .72rem;
+  line-height: 1.55;
+  color: #44415E;
+  overflow-wrap: anywhere;
+}
+.weekly-xp-sync-notice {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #FFF4CC;
+  border: 1px solid #C9AD4B;
+  color: #554016;
+  font-size: .75rem;
+  line-height: 1.55;
+}
+html[data-color-mode="dark"] .weekly-pending-verification { color: #D4D0EC; }
+html[data-color-mode="dark"] .weekly-xp-sync-notice { background: #3B301A; color: #FFE8A3; border-color: #8A7035; }
+
 /* ==========================================================================
    TOP CLOUD SYNC & UTILITY BAR
    ========================================================================== */
@@ -5537,10 +5647,12 @@ html[data-color-mode="dark"][data-active-theme="christmas"] .theme-stage-banner 
   .weekly-goal-celebration { right: 16px; bottom: 100px; }
 }
 /* Disable every decorative motion, including the pre-existing animated blobs. */
+html[data-animations="off"] .ambient-blob { will-change: auto; }
 html[data-animations="off"] :is(.ambient-blob,.brand-starburst,.creator-sparkle,.island-dot,.weekly-goal-celebration),
 html[data-animations="off"] .confetti-canvas { animation: none !important; }
 html[data-animations="off"] .confetti-canvas { display: none; }
 @media (prefers-reduced-motion: reduce) {
+  .ambient-blob { will-change: auto !important; }
   html { scroll-behavior: auto; }
   *,*::before,*::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .theme-particles-layer,.confetti-canvas { display: none !important; }

@@ -46,7 +46,7 @@
 <body data-theme-vibe="pastel-bento" data-layout-mode="adaptive">
 
   <!-- Ambient Floating Background Blobs -->
-  <div class="ambient-bg" aria-hidden="true">
+  <div class="ambient-bg" data-background-style="liquid-pastel" aria-hidden="true">
     <div class="ambient-blob blob-yellow"></div>
     <div class="ambient-blob blob-pink"></div>
     <div class="ambient-blob blob-lavender"></div>
@@ -315,6 +315,7 @@
                 <div class="progress-giant-pct" id="dashboardProgressPct">0%</div>
                 <div class="weekly-widget-meta">
                   <strong class="weekly-tasks-count-label" id="weeklyTasksCountText">0 / 5 Tasks Completed</strong>
+                  <p class="weekly-pending-verification" id="weeklyPendingVerificationText">Hanya penyelesaian yang sudah diverifikasi server yang dihitung.</p>
                   <div class="weekly-mini-progress-track" id="weeklyTasksProgressTrack" role="progressbar" aria-labelledby="weeklyProductivityHeading" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" aria-valuetext="0 dari 5 tugas selesai" title="Target Mingguan: 5 Tugas Selesai = +500 XP">
                     <div class="weekly-mini-progress-fill" id="weeklyTasksProgressBar" style="width: 0%"></div>
                   </div>
@@ -323,6 +324,7 @@
                     <span class="weekly-status-tag" id="weeklyRewardStatusText">0/5 Minggu Ini</span>
                   </div>
                 </div>
+                <p class="weekly-xp-sync-notice hidden" id="weeklyXpSyncNotice" role="status" aria-live="polite"></p>
                 <div class="weekly-widget-actions">
                   <button type="button" class="progress-date-dropdown" id="claimWeeklyRewardBtn">
                     <span id="progressDateLabel">🎁 Klaim +500 XP (0/5)</span>
@@ -1190,7 +1192,7 @@
 
           <label class="shop-anim-toggle-pill" title="Matikan jika ingin menghemat baterai atau mengurangi gerakan dekorasi">
             <input type="checkbox" id="toggleThemeAnimationsInput" checked />
-            <span>✨ Animasi Karakter &amp; Partikel</span>
+            <span>✨ Animasi Karakter &amp; Background</span>
           </label>
         </div>
       </div>

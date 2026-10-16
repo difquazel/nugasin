@@ -428,7 +428,9 @@
   let accountEpoch = 0;
   let pendingCompletions = new Set();
   let completionFlushEpoch = null;
+  let completionFlushPromise = null;
   let economySyncError = '';
+  let economySyncErrorCode = '';
   let weeklyProgress = null;
   let weeklyProgressUnsubscribe = null;
   let subscribedWeekKey = null;
@@ -1321,16 +1323,31 @@
     const response = await fetch(path, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      ...(typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+        ? { signal: AbortSignal.timeout(20000) } : {})
     });
-    const data = await response.json();
+    const data = await response.json().catch(() => ({ ok: false, code: 'SERVER_UNAVAILABLE', error: 'Layanan XP belum merespons. Penyelesaian tugas akan dicoba lagi.' }));
     if (epoch !== accountEpoch || currentUser?.uid !== user.uid) throw new Error('ACCOUNT_CHANGED');
     if (!response.ok || !data.ok) {
       const error = new Error(data.error || 'Server XP belum tersedia. Coba lagi setelah tersambung.');
       error.code = data.code;
+      error.status = response.status;
       throw error;
     }
     return data;
+  }
+
+  function reportEconomySyncError(error, notify = false) {
+    const code = error.code || (error.name === 'TimeoutError' ? 'REQUEST_TIMEOUT' : 'VERIFICATION_FAILED');
+    const isNewError = code !== economySyncErrorCode;
+    economySyncErrorCode = code;
+    economySyncError = code === 'SERVER_NOT_CONFIGURED'
+      ? 'Layanan XP belum aktif. Tugas selesai tetap tersimpan dan menunggu verifikasi server.'
+      : error.message || 'Verifikasi XP tertunda. Penyelesaian tugasmu tetap tersimpan.';
+    renderWeeklyProductivityWidget();
+    renderThemeShopAndWallet();
+    if (notify && isNewError) showToast(economySyncError, '⏳');
   }
 
   function acceptServerWallet(data) {
@@ -1351,7 +1368,10 @@
     if (Number.isFinite(data.serverNowMs)) serverTimeAnchor = { serverMs: data.serverNowMs, localMs: performance.now() };
     acceptServerWallet(data);
     cloudWalletLoaded = true;
-    economySyncError = '';
+    if (!pendingCompletions.size || data.taskId) {
+      economySyncError = '';
+      economySyncErrorCode = '';
+    }
     if (data.weekKey) {
       const existing = weeklyProgress?.weekKey === data.weekKey ? weeklyProgress : null;
       weeklyProgress = { weekKey: data.weekKey, completedCount: Math.max(Number(existing?.completedCount || 0), Number(data.completedCount || 0)), rewarded: existing?.rewarded || data.rewarded === true };
@@ -1364,41 +1384,53 @@
     renderThemeShopAndWallet();
   }
 
-  async function flushPendingTaskCompletions() {
+  function flushPendingTaskCompletions() {
     const user = currentUser;
     const epoch = accountEpoch;
-    if (!user || !firestoreDb || !cloudTasksLoaded || navigator.onLine === false || completionFlushEpoch === epoch) return;
+    if (completionFlushEpoch === epoch && completionFlushPromise) return completionFlushPromise;
+    if (!user || !firestoreDb || !cloudTasksLoaded || navigator.onLine === false) return Promise.resolve();
     completionFlushEpoch = epoch;
-    try {
-      for (const taskId of pendingCompletions) {
-        if (epoch !== accountEpoch) return;
-        const task = appData.tasks.find((item) => String(item.id) === taskId);
-        if (!task || (task.status !== 'completed' && task.xpRewarded !== true && !task.rewardedWeekKey)) {
-          pendingCompletions.delete(taskId);
-          persistPendingCompletions();
-          continue;
-        }
-        try {
-          const data = await postEconomyOperation('/api/complete-task', { taskId }, user, epoch);
-          pendingCompletions.delete(taskId);
-          persistPendingCompletions();
-          applyServerEconomy(data);
-        } catch (error) {
+    // All callers await the same drain, including a manual retry during a snapshot update.
+    completionFlushPromise = Promise.resolve().then(async () => {
+      try {
+        for (const taskId of pendingCompletions) {
           if (epoch !== accountEpoch) return;
-          if (error.code === 'TASK_NOT_COMPLETED' && appData.tasks.find((item) => String(item.id) === taskId)?.status !== 'completed') {
+          const task = appData.tasks.find((item) => String(item.id) === taskId);
+          if (!task || (task.status !== 'completed' && task.xpRewarded !== true && !task.rewardedWeekKey)) {
             pendingCompletions.delete(taskId);
             persistPendingCompletions();
             continue;
           }
-          economySyncError = error.message;
+          try {
+            const data = await postEconomyOperation('/api/complete-task', { taskId }, user, epoch);
+            pendingCompletions.delete(taskId);
+            persistPendingCompletions();
+            applyServerEconomy(data);
+          } catch (error) {
+            if (epoch !== accountEpoch) return;
+            if (error.code === 'TASK_NOT_COMPLETED' && appData.tasks.find((item) => String(item.id) === taskId)?.status !== 'completed') {
+              pendingCompletions.delete(taskId);
+              persistPendingCompletions();
+              continue;
+            }
+            reportEconomySyncError(error, true);
+            // An individual stale cloud task must not hold up other valid completions.
+            if (['TASK_NOT_FOUND', 'TASK_NOT_COMPLETED', 'INVALID_TASK'].includes(error.code)) continue;
+            break;
+          }
+        }
+      } finally {
+        if (completionFlushEpoch === epoch) {
+          completionFlushEpoch = null;
+          completionFlushPromise = null;
+        }
+        if (epoch === accountEpoch) {
           renderWeeklyProductivityWidget();
           renderThemeShopAndWallet();
-          break; // Keep the account-scoped retry queue; never fabricate an offline reward.
         }
       }
-    } finally {
-      if (completionFlushEpoch === epoch) completionFlushEpoch = null;
-    }
+    });
+    return completionFlushPromise;
   }
 
   function subscribeToCurrentWeek() {
@@ -2356,6 +2388,7 @@
     cloudTasksLoaded = false;
     serverTimeAnchor = null;
     economySyncError = '';
+    economySyncErrorCode = '';
     document.getElementById('purchaseConfirmModalBackdrop')?.classList.add('hidden');
     document.getElementById('weeklyGoalCelebrationBanner')?.classList.add('hidden');
     currentUser = user || null;
@@ -2854,7 +2887,7 @@
 
     const pct = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
     const pctEl = document.getElementById('dashboardProgressPct');
-    if (pctEl) pctEl.textContent = `${pct}%`;
+    if (pctEl) pctEl.textContent = `${Math.round(getQualifyingWeeklyTasksInfo().completedCount / WEEKLY_GOAL_TASKS * 100)}%`;
 
     const ringCircle = document.getElementById('progressRingCircle');
     if (ringCircle) {
@@ -3334,12 +3367,13 @@
       applyServerEconomy(data);
     } catch (error) {
       if (epoch === accountEpoch) {
-        economySyncError = error.message;
-        renderWeeklyProductivityWidget();
-        renderThemeShopAndWallet();
+        reportEconomySyncError(error);
       }
     } finally {
-      if (epoch === accountEpoch) isClaimingWeeklyReward = false;
+      if (epoch === accountEpoch) {
+        isClaimingWeeklyReward = false;
+        renderWeeklyProductivityWidget();
+      }
     }
   }
 
@@ -3347,6 +3381,19 @@
     const info = getQualifyingWeeklyTasksInfo();
     const xpBal = Math.max(0, Number(economyState.xpBalance || 0));
     const formattedBal = `${xpBal.toLocaleString('id-ID')} XP`;
+    const weeklyPct = document.getElementById('dashboardProgressPct');
+    if (weeklyPct) weeklyPct.textContent = `${Math.round(info.completedCount / WEEKLY_GOAL_TASKS * 100)}%`;
+    const pendingLabel = document.getElementById('weeklyPendingVerificationText');
+    if (pendingLabel) {
+      pendingLabel.textContent = pendingCompletions.size
+        ? `${pendingCompletions.size} tugas selesai menunggu verifikasi`
+        : 'Hanya penyelesaian yang sudah diverifikasi server yang dihitung.';
+    }
+    const syncNotice = document.getElementById('weeklyXpSyncNotice');
+    if (syncNotice) {
+      syncNotice.textContent = economySyncError;
+      syncNotice.classList.toggle('hidden', !currentUser || !economySyncError);
+    }
     const ringBalance = document.getElementById('progressRingPoints');
     if (ringBalance) ringBalance.textContent = xpBal.toLocaleString('id-ID');
     const ring = document.getElementById('progressRingCircle');
@@ -3415,7 +3462,9 @@
         hintEl.textContent = 'Offline — tugas tetap tersimpan. XP diverifikasi server saat tersambung kembali (mengikuti minggu verifikasi WIB).';
         hintEl.classList.remove('claimed');
       } else if (economySyncError) {
-        hintEl.textContent = 'Verifikasi XP tertunda. Buka XP Wallet untuk mencoba lagi.';
+        hintEl.textContent = economySyncErrorCode === 'SERVER_NOT_CONFIGURED'
+          ? '⏳ Layanan XP belum aktif'
+          : '⏳ Verifikasi XP tertunda';
         hintEl.classList.remove('claimed');
       } else if (pendingCompletions.size > 0) {
         hintEl.textContent = `${pendingCompletions.size} penyelesaian menunggu verifikasi server. Progres menampilkan tugas terverifikasi.`;

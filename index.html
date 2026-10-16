@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#F7DF83" />
+  <title>Nugasin ✨ — Catatan Kampus, Tugas Harian & Kalender Online | Made by Maurence</title>
+  <!-- Google Fonts: Plus Jakarta Sans + Instrument Serif (for the expressive italic typography in reference) + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-theme-vibe="pastel-bento" data-layout-mode="adaptive">
+
+  <!-- Ambient Floating Background Blobs -->
+  <div class="ambient-bg" aria-hidden="true">
+    <div class="ambient-blob blob-yellow"></div>
+    <div class="ambient-blob blob-pink"></div>
+    <div class="ambient-blob blob-lavender"></div>
+    <div class="ambient-blob blob-mint"></div>
+  </div>
+
+  <!-- Top Utility Bar (Cloud Link Sync Status, Layout Toggle, Theme Switcher, Sound Toggle) -->
+  <header class="top-cloud-bar">
+    <div class="cloud-bar-left">
+      <div class="brand-logo" id="brandLogoBtn" title="Nugasin Campus Workspace — Made by Maurence">
+        <span class="brand-starburst">✦</span>
+        <span class="brand-text">Nugasin</span>
+        <span class="brand-badge">Kampus</span>
+      </div>
+
+      <!-- Made by Maurence Credit Pill -->
+      <span class="creator-credit-pill" title="Dirancang & Dikembangkan oleh Maurence">
+        <span class="creator-sparkle">🌸</span>
+        <span>Made by <strong>Maurence</strong></span>
+      </span>
+
+      <!-- Live Online Sync Indicator Pill -->
+      <button class="sync-status-pill" id="openSyncModalBtn" title="Klik untuk kelola Link Online & Cloud Sync">
+        <span class="sync-dot" id="syncDot"></span>
+        <span class="sync-label" id="syncStatusText">Tersimpan Online</span>
+        <span class="sync-space-tag" id="currentSpaceBadge">#kampus-utama</span>
+        <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </button>
+    </div>
+
+    <div class="cloud-bar-right">
+      <!-- Copy Instant Cloud Link Button -->
+      <button class="pill-action-btn copy-link-quick-btn" id="quickCopyLinkBtn" title="Salin Link Catatan Online (Buka di mana saja tidak hilang)">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Salin Link Catatan</span>
+      </button>
+
+      <!-- Theme Vibe Switcher -->
+      <div class="segmented-control" id="vibeSelector" title="Pilih Nuansa Tema">
+        <button class="seg-btn active" data-vibe="pastel-bento">🎨 Semua</button>
+        <button class="seg-btn" data-vibe="butter-pop">🌼 Pop</button>
+        <button class="seg-btn" data-vibe="pink-flow">🌸 Pink</button>
+      </div>
+
+      <!-- Desktop/Mobile Frame Preview Toggle -->
+      <button class="icon-circle-btn" id="toggleFrameModeBtn" title="Ubah Tampilan: Responsif Penuh / Mode Frame HP">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="3" ry="3"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      </button>
+
+      <!-- Sound Effects Toggle -->
+      <button class="icon-circle-btn" id="toggleSoundBtn" title="Efek Suara Interaktif (Aktif/Nonaktif)">
+        <span id="soundIcon">🔊</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main App Shell Wrapper -->
+  <div class="app-shell-wrapper" id="appShellWrapper">
+    <main class="app-container" id="appContainer">
+
+      <!-- Dynamic Island (Visible when Mobile Frame Showcase Mode is enabled or on mobile styling) -->
+      <div class="dynamic-island-bar" id="dynamicIslandBar">
+        <span class="status-time" id="statusBarTime">09:41</span>
+        <div class="dynamic-island-pill" id="dynamicIslandPill" title="Klik untuk buka Timer Pomodoro">
+          <span class="island-dot"></span>
+          <span class="island-text" id="islandStatusText">Siap Nugas ✨</span>
+        </div>
+        <div class="status-icons">
+          <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor"><rect x="0" y="7" width="2.5" height="4" rx="1"/><rect x="4" y="5" width="2.5" height="6" rx="1"/><rect x="8" y="2.5" width="2.5" height="8.5" rx="1"/><rect x="12" y="0" width="2.5" height="11" rx="1"/></svg>
+          <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm-3.6-2.1a5.2 5.2 0 017.2 0l1.2-1.2a6.9 6.9 0 00-9.6 0l1.2 1.2zm-2.8-2.8a9.2 9.2 0 0112.8 0l1.2-1.2a10.9 10.9 0 00-15.2 0l1.2 1.2z"/></svg>
+          <div class="battery-icon"><div class="battery-fill"></div></div>
+        </div>
+      </div>
+
+      <!-- User Greeting Header (Matches bottom row of reference image: Avatar + "Hello, Rownok!" + Search + Notification) -->
+      <section class="user-greeting-bar">
+        <div class="user-profile-trigger" id="editProfileBtn" title="Klik untuk ubah nama & jurusan">
+          <div class="avatar-ring">
+            <img id="userAvatarImg" src="https://api.dicebear.com/7.x/notionists/svg?seed=Rownok&backgroundColor=f7df83,f3b9df,bfc3f2" alt="Avatar" />
+          </div>
+          <div class="greeting-text-wrap">
+            <span class="greeting-sub" id="greetingSemesterText">Semester Ganjil • Informatika</span>
+            <h1 class="greeting-title">Hello, <span id="userNameDisplay">Mahasiswa!</span></h1>
+          </div>
+        </div>
+
+        <div class="greeting-actions">
+          <button class="circle-glass-btn" id="openSearchModalBtn" title="Cari Tugas atau Catatan (Ctrl+K)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button class="circle-glass-btn" id="openPomodoroBtn" title="Timer Fokus Pomodoro">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></svg>
+          </button>
+          <button class="circle-glass-btn notification-btn" id="openNotificationsBtn" title="Pengingat Deadline">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-dot" id="notifBadgeDot"></span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Desktop Navigation Tabs (Complementing the bottom floating dock) -->
+      <nav class="top-view-tabs" aria-label="Navigasi Utama">
+        <button class="view-tab-btn active" data-target-view="view-dashboard">
+          <span>🏠 Beranda & Bento</span>
+        </button>
+        <button class="view-tab-btn" data-target-view="view-tasks">
+          <span>✨ Papan Tugas</span>
+          <span class="tab-count-badge" id="navTaskCountBadge">0</span>
+        </button>
+        <button class="view-tab-btn" data-target-view="view-calendar">
+          <span>📅 Kalender & Flow</span>
+        </button>
+        <button class="view-tab-btn" data-target-view="view-notes">
+          <span>📝 Catatan Kuliah</span>
+          <span class="tab-count-badge" id="navNoteCountBadge">0</span>
+        </button>
+      </nav>
+
+      <!-- ===================================================================
+           VIEW 1: DASHBOARD & BENTO OVERVIEW (Combines Top-Left & Bottom Row)
+           =================================================================== -->
+      <div class="app-view active-view" id="view-dashboard">
+        <div class="dashboard-bento-layout">
+
+          <!-- LEFT / TOP COLUMN: Butter Yellow Hero Card (Top-Left Reference Screen) -->
+          <section class="butter-hero-card">
+            <div class="butter-card-top">
+              <span class="pill-tag-mini">✨ Ruang Akademik Aktif</span>
+              <span class="today-date-chip" id="heroTodayDate">Jumat, 16 Okt</span>
+            </div>
+
+            <h2 class="butter-hero-title">
+              Discover,<br />Create, <em>Enjoy</em>
+            </h2>
+            <p class="butter-hero-subtitle">Cicil tugas harianmu, simpan catatan kuliah, pantau jadwal tanpa panik.</p>
+
+            <!-- Action Pill Row from Top-Left Reference Screen -->
+            <div class="butter-action-pills">
+              <button class="circle-white-btn" id="quickAddNoteHeroBtn" title="Buat Catatan Kuliah Baru">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </button>
+              <button class="circle-white-btn" id="quickManageCoursesBtn" title="Kelola Daftar Mata Kuliah">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </button>
+              <button class="black-pill-btn" id="openQuickNotesBtn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <span>Catatan (<span id="heroNoteCount">0</span>)</span>
+              </button>
+              <button class="white-pill-btn" id="openNewTaskModalHeroBtn">
+                <span>+ Buat Tugas</span>
+              </button>
+            </div>
+
+            <!-- Stacked Folder Card ("Events with Friends" -> "Agenda & Fokus Kampus") -->
+            <div class="stacked-folder-container">
+              <!-- Peeking Pink Layer (Star/Priority) -->
+              <button class="peeking-layer layer-pink active-layer" data-stack-filter="priority" title="Filter: Tugas Prioritas Tinggi">
+                <span class="peek-icon">☆</span>
+                <span class="peek-label">Prioritas</span>
+              </button>
+              <!-- Peeking Blue Layer (Briefcase/Coursework) -->
+              <button class="peeking-layer layer-blue" data-stack-filter="upcoming" title="Filter: Deadline Terdekat">
+                <span class="peek-icon">⏳</span>
+                <span class="peek-label">Deadline</span>
+              </button>
+              <!-- Peeking Lavender Layer (Notes) -->
+              <button class="peeking-layer layer-lavender" data-stack-filter="pinned-notes" title="Filter: Catatan Disematkan">
+                <span class="peek-icon">📌</span>
+                <span class="peek-label">Catatan</span>
+              </button>
+
+              <!-- Foreground Sage Olive Card -->
+              <div class="sage-folder-card" id="sageFolderCard">
+                <div class="sage-card-header">
+                  <h3 class="sage-card-title" id="sageCardTitle">Agenda & Tugas Prioritas</h3>
+                  <div class="sage-header-icons">
+                    <button class="sage-dots-btn" id="cycleStackTabBtn" title="Ganti Kategori Kartu">•••</button>
+                    <span class="sage-badge-icon">🎓</span>
+                  </div>
+                </div>
+
+                <!-- 3 Interactive Rounded White Pill Rows inside Sage Card -->
+                <div class="sage-list-rows" id="sageQuickList">
+                  <!-- Populated dynamically by app.js -->
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- MIDDLE / RIGHT COLUMN: Lavender Progress Card + Blush 4-Metric Card + 2x2 Bento Grid -->
+          <div class="bento-right-column">
+
+            <!-- Lavender "Your Progress" Card (Bottom-Middle Reference Screen) -->
+            <section class="lavender-progress-card">
+              <div class="progress-card-left">
+                <div class="progress-title-row">
+                  <span class="mini-square-badge">📈</span>
+                  <span class="progress-card-heading">Progres Tugasmu</span>
+                </div>
+                <div class="progress-giant-pct" id="dashboardProgressPct">0%</div>
+                <button class="progress-date-dropdown" id="progressFilterBtn">
+                  <span id="progressDateLabel">Minggu Ini</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+              </div>
+
+              <div class="progress-card-right">
+                <div class="circular-gauge-wrap">
+                  <div class="flame-badge" title="Streak Produktif Kampus">🔥</div>
+                  <svg class="progress-ring-svg" width="116" height="116" viewBox="0 0 116 116">
+                    <circle class="ring-bg" cx="58" cy="58" r="46" />
+                    <circle class="ring-fill" id="progressRingCircle" cx="58" cy="58" r="46" stroke-dasharray="289" stroke-dashoffset="72" />
+                  </svg>
+                  <div class="ring-center-content">
+                    <span class="ring-score-num" id="progressRingPoints">0</span>
+                    <span class="ring-score-sub" id="progressRingUnit">XP Fokus</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Dusty Rose / Blush 4-Metric Summary Card ("Breakfast 350 calories" -> "Ringkasan Tugas & Catatan") -->
+            <section class="blush-metrics-card">
+              <div class="blush-card-header">
+                <div class="blush-title-group">
+                  <span class="mini-circle-icon">📊</span>
+                  <div>
+                    <h3 class="blush-title">Status Akademik Harian</h3>
+                    <p class="blush-subtitle" id="blushSubtitleText">Pantau beban tugas & catatan kuliahmu</p>
+                  </div>
+                </div>
+                <div class="blush-actions">
+                  <button class="circle-mini-white" id="blushQuickAddTaskBtn" title="Tambah Tugas Baru">+</button>
+                  <button class="circle-mini-white" id="blushQuickAddNoteBtn" title="Tulis Catatan Baru">✎</button>
+                </div>
+              </div>
+
+              <div class="blush-stats-grid">
+                <div class="blush-stat-item">
+                  <span class="stat-label">Belum Selesai</span>
+                  <strong class="stat-value" id="metricPendingTasks">0</strong>
+                </div>
+                <div class="blush-stat-item">
+                  <span class="stat-label">Tuntas</span>
+                  <strong class="stat-value" id="metricCompletedTasks">0</strong>
+                </div>
+                <div class="blush-stat-item">
+                  <span class="stat-label">Catatan</span>
+                  <strong class="stat-value" id="metricTotalNotes">0</strong>
+                </div>
+                <div class="blush-stat-item">
+                  <span class="stat-label">Deadline &lt;3Hr</span>
+                  <strong class="stat-value" id="metricUrgentTasks">0</strong>
+                </div>
+              </div>
+
+              <div class="blush-progress-track">
+                <div class="blush-progress-fill" id="blushProgressBar" style="width: 65%"></div>
+              </div>
+
+              <div class="blush-card-footer">
+                <span class="blush-footer-left">Semester Aktif ⌄</span>
+                <button class="blush-footer-link" data-goto-view="view-tasks">Lihat Semua Tugas →</button>
+              </div>
+            </section>
+
+            <!-- 2x2 Pastel Bento Cards (Bottom-Left Reference Screen: Peach, Lavender, Mint, Coral) -->
+            <section class="pastel-bento-grid-2x2">
+              <!-- Card 1: Warm Peach -->
+              <article class="bento-mini-card bento-peach" data-goto-view="view-tasks">
+                <div class="bento-mini-top">
+                  <h4>Tugas Harian</h4>
+                  <span class="bento-mini-icon">⚡</span>
+                </div>
+                <p class="bento-mini-desc" id="bentoTasksDesc">Kelola daftar PR, kuis & proyek kelompok</p>
+                <div class="bento-mini-footer">
+                  <span>Buka Papan</span>
+                  <span class="arrow-icon">→</span>
+                </div>
+              </article>
+
+              <!-- Card 2: Soft Periwinkle/Lavender -->
+              <article class="bento-mini-card bento-lavender" data-goto-view="view-notes">
+                <div class="bento-mini-top">
+                  <h4>Catatan Kuliah</h4>
+                  <span class="bento-mini-icon">💜</span>
+                </div>
+                <p class="bento-mini-desc" id="bentoNotesDesc">Rangkuman materi per mata kuliah</p>
+                <div class="bento-mini-footer">
+                  <span>Buka Catatan</span>
+                  <span class="arrow-icon">→</span>
+                </div>
+              </article>
+
+              <!-- Card 3: Mint Aqua -->
+              <article class="bento-mini-card bento-mint" data-goto-view="view-calendar">
+                <div class="bento-mini-top">
+                  <h4>Kalender Kampus</h4>
+                  <span class="bento-mini-icon">🗓️</span>
+                </div>
+                <p class="bento-mini-desc" id="bentoCalendarDesc">Jadwal deadline, UTS, UAS & flow harian</p>
+                <div class="bento-mini-footer">
+                  <span>Cek Jadwal</span>
+                  <span class="arrow-icon">→</span>
+                </div>
+              </article>
+
+              <!-- Card 4: Coral Salmon -->
+              <article class="bento-mini-card bento-coral" id="bentoOpenCloudBtn">
+                <div class="bento-mini-top">
+                  <h4>Cloud & Link</h4>
+                  <span class="bento-mini-icon">☁️</span>
+                </div>
+                <p class="bento-mini-desc">Simpan permanen di link & sinkronisasi online</p>
+                <div class="bento-mini-footer">
+                  <span>Kelola Link</span>
+                  <span class="arrow-icon">→</span>
+                </div>
+              </article>
+            </section>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================================================================
+           VIEW 2: STICKER MOODBOARD & PAPAN TUGAS KAMPUS (Top-Middle Reference)
+           =================================================================== -->
+      <div class="app-view" id="view-tasks">
+        <div class="tasks-view-layout">
+
+          <!-- Left Column: Playful Sticker Wall ("Activities just for your taste" Reference Screen) -->
+          <section class="sticker-poster-card">
+            <div class="organic-green-crown" aria-hidden="true"></div>
+
+            <div class="sticker-poster-header">
+              <h2 class="editorial-display-title">
+                Prioritas<br />
+                <em>tugas &amp; target</em><br />
+                kampusmu
+              </h2>
+              <span class="sticker-hint-badge">Klik stiker untuk detail ✨</span>
+            </div>
+
+            <!-- Interactive Geometric Stickers Stage (Starburst, Tilted Square, Circle) -->
+            <div class="geometric-stickers-stage" id="geometricStickersStage">
+              <!-- Populated dynamically with the top 3 urgent/pinned tasks using the exact shapes from reference -->
+            </div>
+
+            <div class="sticker-poster-footer">
+              <p class="sticker-question-text">Sudah pilih tugas mana yang mau diselesaikan duluan?</p>
+              <button class="black-start-pill-btn" id="openNewTaskModalStickerBtn">
+                <span>+ Tugas Baru</span>
+                <span class="start-arrow">→</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Right Column: Full Interactive Task Manager (Filter, Search, Subtasks, Course Tags) -->
+          <section class="task-manager-panel">
+            <div class="panel-header-bar">
+              <div>
+                <h3 class="panel-main-title">Daftar Tugas &amp; Deadline Kampus</h3>
+                <p class="panel-sub-text">Centang tugas yang selesai, tambahkan sub-tugas atau lampirkan link tugas</p>
+              </div>
+              <button class="primary-dark-btn" id="addTaskMainBtn">+ Tambah Tugas</button>
+            </div>
+
+            <!-- Filter Pills & Course Filter -->
+            <div class="task-filters-bar">
+              <div class="status-filter-pills" id="taskStatusFilterGroup">
+                <button class="filter-chip active" data-task-filter="all">Semua</button>
+                <button class="filter-chip" data-task-filter="pending">Belum Selesai</button>
+                <button class="filter-chip" data-task-filter="in-progress">Sedang Dikerjakan</button>
+                <button class="filter-chip" data-task-filter="completed">Selesai ✨</button>
+                <button class="filter-chip" data-task-filter="urgent">🔥 Mendesak</button>
+              </div>
+
+              <select class="course-filter-select" id="taskCourseFilterSelect" aria-label="Filter Mata Kuliah">
+                <option value="all">📚 Semua Mata Kuliah</option>
+              </select>
+            </div>
+
+            <!-- Task Cards List -->
+            <div class="tasks-list-container" id="tasksListContainer">
+              <!-- Populated dynamically -->
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- ===================================================================
+           VIEW 3: KALENDER KAMPUS & AUDIENCE/STUDY FLOW (Top-Right Pink Screen)
+           =================================================================== -->
+      <div class="app-view" id="view-calendar">
+        <div class="calendar-view-layout">
+
+          <!-- Left/Top: Pastel Pink "Event Details & Audience Flow" Card (Top-Right Reference Screen) -->
+          <section class="pink-flow-card">
+            <div class="pink-card-topbar">
+              <span class="pink-top-pill">📅 Sorotan Tanggal</span>
+              <span class="pink-top-title">Jadwal &amp; Produktivitas</span>
+              <button class="circle-pink-icon-btn" id="jumpToTodayBtn" title="Kembali ke Hari Ini">Hari Ini</button>
+            </div>
+
+            <!-- Date & Time Highlight Row with 8-Point Plum Starburst & Yellow Circle Clock -->
+            <div class="pink-datetime-highlight">
+              <div class="pink-dt-group">
+                <span class="pink-dt-label">Date</span>
+                <div class="pink-dt-badge-row">
+                  <div class="starburst-8-badge">
+                    <span id="selectedCalDayNum">16</span>
+                  </div>
+                  <div class="pink-dt-text">
+                    <strong id="selectedCalMonthName">Oktober</strong>
+                    <span id="selectedCalDayName">Jumat, 2026</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pink-dt-group">
+                <span class="pink-dt-label">Target Fokus</span>
+                <div class="pink-dt-badge-row">
+                  <div class="yellow-clock-circle">🕒</div>
+                  <div class="pink-dt-text">
+                    <strong id="selectedCalTaskCount">0 Agenda</strong>
+                    <span id="selectedCalNextTime">Siap Produktif</span>
+                  </div>
+                </div>
+              </div>
+
+              <button class="pink-tall-chevron-btn" id="addEventOnSelectedDateBtn" title="Tambah Tugas/Jadwal di Tanggal Ini">
+                <span>+</span>
+              </button>
+            </div>
+
+            <!-- Weekly Day Strip (MO TU WE TH FR SA SU) -->
+            <div class="audience-flow-section">
+              <div class="flow-header-row">
+                <h3 class="flow-title">Beban &amp; Fokus Mingguan</h3>
+                <span class="flow-filter-tag" id="weeklyLoadSummaryTag">Filter &gt;</span>
+              </div>
+
+              <div class="week-pills-strip" id="weekPillsStrip">
+                <!-- Populated dynamically with SN SL RB KM JM SB MG -->
+              </div>
+
+              <!-- Interactive SVG Wave & Hatched Bar Chart (Matches the Pink Screen 73% Graph) -->
+              <div class="pink-wave-chart-box" id="pinkWaveChartBox">
+                <!-- Rendered dynamically via SVG -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Right/Bottom: Full Interactive Monthly Calendar + Selected Date Agenda & Notes -->
+          <section class="monthly-calendar-panel">
+            <div class="cal-month-header">
+              <div>
+                <h3 class="cal-month-title" id="calMonthYearTitle">Oktober 2026</h3>
+                <p class="cal-month-sub">Klik tanggal untuk melihat atau menambah tugas &amp; catatan kuliah</p>
+              </div>
+              <div class="cal-nav-btns">
+                <button class="circle-cal-btn" id="calPrevMonthBtn" title="Bulan Sebelumnya">‹</button>
+                <button class="pill-cal-today-btn" id="calTodayResetBtn">Hari Ini</button>
+                <button class="circle-cal-btn" id="calNextMonthBtn" title="Bulan Berikutnya">›</button>
+              </div>
+            </div>
+
+            <!-- Weekday Headers -->
+            <div class="cal-weekdays-grid">
+              <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span>
+            </div>
+
+            <!-- Days Grid -->
+            <div class="cal-days-grid" id="calendarDaysGrid">
+              <!-- Populated dynamically -->
+            </div>
+
+            <!-- Legend -->
+            <div class="cal-legend-bar">
+              <span class="legend-item"><i class="dot dot-urgent"></i> Ujian / Mendesak</span>
+              <span class="legend-item"><i class="dot dot-task"></i> Tugas Harian</span>
+              <span class="legend-item"><i class="dot dot-note"></i> Catatan Kuliah</span>
+              <span class="legend-item"><i class="dot dot-done"></i> Selesai</span>
+            </div>
+
+            <!-- Selected Date Details List -->
+            <div class="selected-date-agenda-box">
+              <div class="agenda-box-header">
+                <h4 id="agendaDateHeading">Agenda Tanggal Ini</h4>
+                <div class="agenda-box-actions">
+                  <button class="mini-pill-btn" id="addNoteForDateBtn">+ Catatan</button>
+                  <button class="mini-pill-btn dark" id="addTaskForDateBtn">+ Tugas</button>
+                </div>
+              </div>
+              <div class="agenda-items-list" id="selectedDateAgendaList">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- ===================================================================
+           VIEW 4: CATATAN KULIAH STUDIO (Rich Campus Notes & Course Binder)
+           =================================================================== -->
+      <div class="app-view" id="view-notes">
+        <div class="notes-studio-layout">
+
+          <!-- Left Sidebar: Course Filter, Search & Notes Cards List -->
+          <aside class="notes-sidebar-panel">
+            <div class="notes-sidebar-top">
+              <div class="notes-title-row">
+                <h3>📓 Catatan Kuliah</h3>
+                <button class="primary-dark-btn btn-sm" id="createNewNoteBtn">+ Catatan Baru</button>
+              </div>
+
+              <div class="notes-search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="notesSearchInput" placeholder="Cari judul, materi, atau tag..." />
+              </div>
+
+              <!-- Course / Folder Chips -->
+              <div class="course-chips-scroll" id="notesCourseChips">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+
+            <!-- Notes List -->
+            <div class="notes-cards-list" id="notesCardsList">
+              <!-- Populated dynamically -->
+            </div>
+          </aside>
+
+          <!-- Right Main Area: Interactive Rich Note Editor -->
+          <section class="note-editor-panel" id="noteEditorPanel">
+            <div class="editor-topbar">
+              <div class="editor-meta-left">
+                <select id="activeNoteCourseSelect" class="note-course-select" title="Pilih Mata Kuliah">
+                  <!-- Populated dynamically -->
+                </select>
+                <input type="date" id="activeNoteDateInput" class="note-date-input" title="Tanggal Perkuliahan / Catatan" />
+                <div class="note-color-picker" id="noteColorPicker" title="Pilih Warna Kartu Catatan">
+                  <button class="color-swatch swatch-cream active" data-color="cream" title="Krem Klasik"></button>
+                  <button class="color-swatch swatch-yellow" data-color="yellow" title="Butter Yellow"></button>
+                  <button class="color-swatch swatch-pink" data-color="pink" title="Pastel Pink"></button>
+                  <button class="color-swatch swatch-lavender" data-color="lavender" title="Soft Lavender"></button>
+                  <button class="color-swatch swatch-mint" data-color="mint" title="Mint Segar"></button>
+                  <button class="color-swatch swatch-peach" data-color="peach" title="Warm Peach"></button>
+                </div>
+              </div>
+
+              <div class="editor-actions-right">
+                <span class="note-autosave-badge" id="noteAutosaveBadge">✓ Tersimpan otomatis</span>
+                <button class="icon-pill-btn" id="togglePinNoteBtn" title="Sematkan Catatan di Beranda">📌 Sematkan</button>
+                <button class="icon-pill-btn" id="shareSingleNoteLinkBtn" title="Salin Link ke Catatan Ini">🔗 Bagikan</button>
+                <button class="icon-pill-btn danger" id="deleteActiveNoteBtn" title="Hapus Catatan">🗑️</button>
+              </div>
+            </div>
+
+            <!-- Rich Formatting Toolbar -->
+            <div class="editor-formatting-toolbar">
+              <button class="fmt-btn" data-cmd="bold" title="Tebal (Ctrl+B)"><b>B</b></button>
+              <button class="fmt-btn" data-cmd="italic" title="Miring (Ctrl+I)"><i>I</i></button>
+              <button class="fmt-btn" data-cmd="underline" title="Garis Bawah (Ctrl+U)"><u>U</u></button>
+              <button class="fmt-btn" data-cmd="strikeThrough" title="Coret"><s>S</s></button>
+              <span class="toolbar-divider"></span>
+              <button class="fmt-btn" data-custom-fmt="h2" title="Judul Bagian">H2</button>
+              <button class="fmt-btn" data-custom-fmt="h3" title="Sub-Judul">H3</button>
+              <button class="fmt-btn" data-cmd="insertUnorderedList" title="Daftar Poin">• List</button>
+              <button class="fmt-btn" data-cmd="insertOrderedList" title="Daftar Nomor">1. List</button>
+              <button class="fmt-btn" data-custom-fmt="checklist" title="Tambah Baris Checklist Tugas">[✓] Ceklis</button>
+              <span class="toolbar-divider"></span>
+              <button class="fmt-btn highlight-btn hl-yellow" data-highlight="#F7DF83" title="Stabilo Kuning">🖍️ Kuning</button>
+              <button class="fmt-btn highlight-btn hl-pink" data-highlight="#F3B9DF" title="Stabilo Pink">🖍️ Pink</button>
+              <button class="fmt-btn highlight-btn hl-mint" data-highlight="#BEE3E5" title="Stabilo Mint">🖍️ Mint</button>
+              <button class="fmt-btn" data-custom-fmt="callout" title="Kotak Info / Rumus Penting">💡 Kotak Penting</button>
+              <button class="fmt-btn" data-custom-fmt="code" title="Blok Kode Program">{ } Kode</button>
+            </div>
+
+            <!-- Note Title & Content Area -->
+            <div class="note-paper-canvas" id="notePaperCanvas" data-note-theme="cream">
+              <div class="note-pertemuan-row">
+                <input type="text" id="activeNoteTagInput" class="note-tag-input" placeholder="Tag: misal Pertemuan 5, Rangkuman UTS, Kelompok..." />
+                <span class="note-word-count" id="noteWordCount">0 kata</span>
+              </div>
+
+              <input type="text" id="activeNoteTitleInput" class="note-title-input" placeholder="Judul Catatan Kuliah..." />
+
+              <div
+                id="activeNoteBodyEditor"
+                class="note-body-contenteditable"
+                contenteditable="true"
+                data-placeholder="Mulai ketik catatan kuliahmu di sini... Semua perubahan otomatis tersimpan online di link ruang kerjamu ✨"
+              ></div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- Signature Credit Footer -->
+      <footer class="maurence-credit-footer">
+        <div class="maurence-credit-card">
+          <span class="credit-star-icon">✦</span>
+          <span class="credit-text">Nugasin Campus Workspace • Made by <strong>Maurence</strong></span>
+          <span class="credit-star-icon">✦</span>
+        </div>
+      </footer>
+
+      <!-- ===================================================================
+           BOTTOM FLOATING NAVIGATION DOCK (Matches Reference Image Bottom Bar)
+           =================================================================== -->
+      <nav class="bottom-floating-dock" aria-label="Menu Bawah">
+        <div class="dock-pill-inner">
+          <button class="dock-item active" data-target-view="view-dashboard" title="Beranda">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span class="dock-label">Beranda</span>
+          </button>
+
+          <button class="dock-item" data-target-view="view-tasks" title="Papan Tugas">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span class="dock-label">Tugas</span>
+          </button>
+
+          <!-- Center Elevated Circular Cutout Action Button (+ Create / Quick Action) -->
+          <div class="dock-center-notch">
+            <button class="dock-fab-btn" id="dockFabButton" title="Tambah Tugas atau Catatan Cepat">
+              <span class="fab-plus-icon">+</span>
+            </button>
+          </div>
+
+          <button class="dock-item" data-target-view="view-calendar" title="Kalender Kampus">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="dock-label">Kalender</span>
+          </button>
+
+          <button class="dock-item" data-target-view="view-notes" title="Catatan Kuliah">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span class="dock-label">Catatan</span>
+          </button>
+        </div>
+      </nav>
+
+    </main>
+  </div>
+
+  <!-- ===================================================================
+       QUICK FAB MENU POPOVER (When clicking the center + button)
+       =================================================================== -->
+  <div class="fab-quick-menu hidden" id="fabQuickMenu">
+    <button class="fab-menu-option" id="fabNewTaskBtn">
+      <span class="fab-opt-icon bg-yellow">📋</span>
+      <div class="fab-opt-text">
+        <strong>Tugas Kampus Baru</strong>
+        <span>Deadline, sub-tugas &amp; prioritas</span>
+      </div>
+    </button>
+    <button class="fab-menu-option" id="fabNewNoteBtn">
+      <span class="fab-opt-icon bg-pink">📝</span>
+      <div class="fab-opt-text">
+        <strong>Catatan Kuliah Baru</strong>
+        <span>Rangkuman materi &amp; highlight</span>
+      </div>
+    </button>
+    <button class="fab-menu-option" id="fabStartPomodoroBtn">
+      <span class="fab-opt-icon bg-lavender">⏱️</span>
+      <div class="fab-opt-text">
+        <strong>Mulai Timer Fokus</strong>
+        <span>Sesi belajar Pomodoro 25 menit</span>
+      </div>
+    </button>
+    <button class="fab-menu-option" id="fabCopyCloudLinkBtn">
+      <span class="fab-opt-icon bg-mint">🔗</span>
+      <div class="fab-opt-text">
+        <strong>Salin Link Catatan Online</strong>
+        <span>Simpan &amp; buka di perangkat mana pun</span>
+      </div>
+    </button>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 1: CREATE / EDIT TASK MODAL
+       =================================================================== -->
+  <div class="modal-backdrop hidden" id="taskModalBackdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="taskModalTitle">✨ Tambah Tugas Kampus</h3>
+        <button class="modal-close-btn" data-close-modal="taskModalBackdrop">✕</button>
+      </div>
+
+      <form id="taskForm" class="modal-form">
+        <input type="hidden" id="taskFormId" />
+
+        <div class="form-group">
+          <label for="taskTitleInput">Judul Tugas / Kegiatan *</label>
+          <input type="text" id="taskTitleInput" required placeholder="Contoh: Laporan Praktikum Basis Data Modul 4" />
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="taskCourseInput">Mata Kuliah</label>
+            <select id="taskCourseInput"></select>
+          </div>
+          <div class="form-group">
+            <label for="taskCategoryInput">Jenis Tugas</label>
+            <select id="taskCategoryInput">
+              <option value="Tugas Individu">📄 Tugas Individu</option>
+              <option value="Tugas Kelompok">👥 Tugas Kelompok</option>
+              <option value="Kuis / Ujian">⚡ Kuis / Ujian (UTS/UAS)</option>
+              <option value="Presentasi">🎤 Presentasi / Seminar</option>
+              <option value="Praktikum">💻 Laporan Praktikum</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-3">
+          <div class="form-group">
+            <label for="taskDueDateInput">Tanggal Deadline *</label>
+            <input type="date" id="taskDueDateInput" required />
+          </div>
+          <div class="form-group">
+            <label for="taskDueTimeInput">Jam Kumpul</label>
+            <input type="time" id="taskDueTimeInput" value="23:59" />
+          </div>
+          <div class="form-group">
+            <label for="taskPriorityInput">Prioritas &amp; Bentuk</label>
+            <select id="taskPriorityInput">
+              <option value="high">🌸 Tinggi (Starburst)</option>
+              <option value="medium" selected>🌼 Sedang (Square)</option>
+              <option value="low">🔵 Santai (Circle)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="taskDescInput">Catatan Tambahan / Instruksi Dosen</label>
+          <textarea id="taskDescInput" rows="2" placeholder="Tulis detail instruksi, format file (.pdf/.zip), atau pembagian tugas..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="taskLinkInput">Link Pengumpulan / Referensi (Google Drive, Figma, E-Learning)</label>
+          <input type="url" id="taskLinkInput" placeholder="https://..." />
+        </div>
+
+        <div class="form-group">
+          <label>Checklist Langkah Pengerjaan (Sub-tugas)</label>
+          <div class="subtasks-builder" id="subtasksBuilderList"></div>
+          <div class="subtask-add-row">
+            <input type="text" id="newSubtaskTextInput" placeholder="Tambah langkah kecil (tekan Enter atau klik +)..." />
+            <button type="button" class="mini-pill-btn dark" id="addSubtaskRowBtn">+ Tambah</button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="secondary-pill-btn" data-close-modal="taskModalBackdrop">Batal</button>
+          <button type="submit" class="primary-dark-btn">Simpan Tugas ✨</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 2: ONLINE CLOUD SYNC & PERMANENT LINK MANAGER
+       =================================================================== -->
+  <div class="modal-backdrop hidden" id="syncModalBackdrop">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3>☁️ Penyimpanan Online &amp; Link Permanen</h3>
+        <button class="modal-close-btn" data-close-modal="syncModalBackdrop">✕</button>
+      </div>
+
+      <div class="sync-modal-body">
+        <div class="sync-hero-banner">
+          <div class="sync-banner-icon">🔗</div>
+          <div>
+            <h4>Catatan &amp; Tugasmu Tersimpan Otomatis!</h4>
+            <p>Aplikasi ini menggunakan <strong>4 Lapis Penyimpanan Online &amp; Link Pintar</strong>: Database Cloud Server, Smart Permalink (data terenkripsi di dalam URL), IndexedDB, dan LocalStorage. Saat link dibuka kembali kapan saja, catatanmu dijamin aman dan tidak hilang.</p>
+          </div>
+        </div>
+
+        <!-- Option 1: Instant Shareable Link with Embedded Snapshot -->
+        <div class="sync-section-box">
+          <label class="sync-box-label">1. Link Permanen Catatanmu (Bisa Dibuka di HP / Laptop Lain)</label>
+          <p class="sync-box-help">Link ini membawa ID Ruang Kerjamu sekaligus cadangan penuh catatanmu. Bookmark atau bagikan link ini ke WhatsApp/Telegram pribadimu:</p>
+          <div class="copy-input-group">
+            <input type="text" id="shareableFullLinkInput" readonly />
+            <button class="primary-dark-btn" id="copyFullLinkModalBtn">📋 Salin Link</button>
+          </div>
+        </div>
+
+        <!-- Option 2: Custom Workspace Code (Room ID) -->
+        <div class="sync-section-box">
+          <label class="sync-box-label">2. Kode Ruang Kerja Online (Cloud Workspace ID)</label>
+          <p class="sync-box-help">Gunakan kode unik (misal: <code>informatika-aldi-2026</code>) agar semua perubahan tersinkronisasi secara real-time di server:</p>
+          <div class="copy-input-group">
+            <input type="text" id="workspaceCodeInput" placeholder="contoh: kampus-utama" />
+            <button class="secondary-pill-btn" id="switchWorkspaceBtn">🔄 Gunakan Kode</button>
+          </div>
+        </div>
+
+        <!-- Option 3: Backup & Restore JSON File -->
+        <div class="sync-section-box">
+          <label class="sync-box-label">3. Ekspor / Impor File Cadangan (.json)</label>
+          <div class="backup-btns-row">
+            <button class="secondary-pill-btn" id="exportJsonBtn">⬇️ Unduh Backup (.json)</button>
+            <label class="secondary-pill-btn file-upload-label">
+              ⬆️ Pulihkan dari File (.json)
+              <input type="file" id="importJsonInput" accept=".json" hidden />
+            </label>
+            <button class="secondary-pill-btn danger-text" id="resetDemoDataBtn">✨ Muat Ulang Contoh Data</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 3: POMODORO FOCUS TIMER
+       =================================================================== -->
+  <div class="modal-backdrop hidden" id="pomodoroModalBackdrop">
+    <div class="modal-card modal-sm pomodoro-modal-card">
+      <div class="modal-header">
+        <h3>⏱️ Timer Fokus Nugas</h3>
+        <button class="modal-close-btn" data-close-modal="pomodoroModalBackdrop">✕</button>
+      </div>
+
+      <div class="pomo-body">
+        <div class="pomo-mode-pills">
+          <button class="pomo-mode-btn active" data-pomo-mins="25" data-pomo-label="Fokus Belajar">🎯 Fokus 25m</button>
+          <button class="pomo-mode-btn" data-pomo-mins="50" data-pomo-label="Deep Work">🔥 Deep 50m</button>
+          <button class="pomo-mode-btn" data-pomo-mins="5" data-pomo-label="Istirahat Singkat">☕ Rehat 5m</button>
+        </div>
+
+        <div class="pomo-clock-display">
+          <span class="pomo-status-tag" id="pomoModeLabel">Fokus Belajar</span>
+          <div class="pomo-time-digits" id="pomoTimeDigits">25:00</div>
+        </div>
+
+        <div class="pomo-controls">
+          <button class="primary-dark-btn pomo-main-btn" id="pomoToggleBtn">▶ Mulai Fokus</button>
+          <button class="secondary-pill-btn" id="pomoResetBtn">↺ Reset</button>
+        </div>
+
+        <p class="pomo-stats-note">Total fokus hari ini: <strong id="pomoTodayTotalMins">75</strong> menit (+XP Progres)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 4: GLOBAL SEARCH (Ctrl+K) & COURSE MANAGER & PROFILE
+       =================================================================== -->
+  <div class="modal-backdrop hidden" id="searchModalBackdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🔍 Cari Cepat Tugas &amp; Catatan</h3>
+        <button class="modal-close-btn" data-close-modal="searchModalBackdrop">✕</button>
+      </div>
+      <div class="modal-body-pad">
+        <input type="text" id="globalSearchInput" class="global-search-input" placeholder="Ketik kata kunci tugas, mata kuliah, atau isi catatan..." />
+        <div class="global-search-results" id="globalSearchResults"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Course & Profile Manager Modal -->
+  <div class="modal-backdrop hidden" id="profileModalBackdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🎓 Profil Mahasiswa &amp; Mata Kuliah</h3>
+        <button class="modal-close-btn" data-close-modal="profileModalBackdrop">✕</button>
+      </div>
+      <div class="modal-body-pad">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="profileNameInput">Nama Panggilan</label>
+            <input type="text" id="profileNameInput" placeholder="Contoh: Rownok / Aldi" />
+          </div>
+          <div class="form-group">
+            <label for="profileMajorInput">Semester &amp; Jurusan</label>
+            <input type="text" id="profileMajorInput" placeholder="Semester 5 • Informatika" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Daftar Mata Kuliah Semester Ini</label>
+          <div class="courses-manage-list" id="coursesManageList"></div>
+          <div class="subtask-add-row">
+            <input type="text" id="newCourseNameInput" placeholder="Nama Mata Kuliah baru..." />
+            <button type="button" class="mini-pill-btn dark" id="addNewCourseBtn">+ Tambah</button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="primary-dark-btn" id="saveProfileBtn">Simpan Profil ✨</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Confetti Canvas for Task Completion Celebration -->
+  <canvas id="confettiCanvas" class="confetti-canvas" aria-hidden="true"></canvas>
+
+  <script src="app.js"></script>
+</body>
+</html>

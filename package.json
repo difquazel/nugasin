@@ -1,0 +1,21 @@
+{
+  "name": "nugasin-campus-workspace",
+  "version": "1.0.0",
+  "description": "Website Nugas Harian & Catatan Kampus Interaktif dengan Kalender & Cloud Link Sync — Made by Maurence",
+  "author": "Maurence",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "deploy": "npx vercel --prod"
+  },
+  "keywords": [
+    "campus",
+    "notes",
+    "tasks",
+    "calendar",
+    "productivity",
+    "maurence"
+  ],
+  "license": "MIT"
+}

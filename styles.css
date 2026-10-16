@@ -3192,6 +3192,326 @@ body.phone-frame-mode .notes-studio-layout {
   font-size: 0.88rem;
 }
 
+.hidden {
+  display: none !important;
+}
+
+/* ==========================================================================
+   NOTE EMPTY STATE
+   ========================================================================== */
+.note-empty-state {
+  min-height: 440px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 36px 24px;
+  background: var(--bg-cream);
+  border-radius: 24px;
+  border: 1.5px dashed rgba(20, 20, 22, 0.14);
+  gap: 12px;
+}
+
+.empty-note-illustration {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  background: var(--butter-yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  box-shadow: 0 8px 20px rgba(247, 223, 131, 0.45);
+  margin-bottom: 4px;
+}
+
+.note-empty-state h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.note-empty-state p {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  max-width: 380px;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+/* ==========================================================================
+   WELCOME ONBOARDING SCREEN & AVATAR PICKER (COWOK / CEWEK / UPLOAD)
+   ========================================================================== */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: rgba(244, 243, 238, 0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  overflow-y: auto;
+  animation: fadeIn 0.35s var(--ease-fluid);
+}
+
+.onboarding-card {
+  background: #FFFFFF;
+  border-radius: 34px;
+  width: min(96vw, 580px);
+  max-height: 94vh;
+  overflow-y: auto;
+  padding: 28px 28px 26px;
+  box-shadow: 0 28px 70px rgba(20, 20, 22, 0.16), 0 0 0 1px rgba(20, 20, 22, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: modalSlideUp 0.45s var(--ease-spring);
+}
+
+.onboarding-top-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-cream);
+  padding: 6px 14px 6px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 800;
+  width: fit-content;
+}
+
+.onboarding-credit-tag {
+  background: var(--pastel-pink);
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.onboarding-title {
+  font-size: 2.15rem;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--ink-black);
+}
+
+.onboarding-title em {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-style: italic;
+  font-size: 2.4rem;
+}
+
+.onboarding-subtitle {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  margin-top: -6px;
+  line-height: 1.45;
+}
+
+.onboarding-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.onboarding-avatar-section,
+.profile-avatar-editor-box {
+  background: var(--bg-cream);
+  border-radius: 24px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid rgba(20, 20, 22, 0.06);
+}
+
+.onboarding-avatar-preview-ring,
+.avatar-preview-large-wrap {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, var(--butter-yellow), var(--pastel-pink), var(--lavender-card));
+  box-shadow: 0 8px 20px rgba(20, 20, 22, 0.12);
+  flex-shrink: 0;
+}
+
+.onboarding-avatar-preview-ring img,
+.avatar-preview-large-wrap img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #FFFFFF;
+}
+
+.avatar-camera-fab {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ink-black);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  cursor: pointer;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.25s var(--ease-spring);
+}
+
+.avatar-camera-fab:hover {
+  transform: scale(1.12);
+}
+
+.onboarding-avatar-options,
+.avatar-editor-controls {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.avatar-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.avatar-gender-tab,
+.avatar-upload-tab,
+.upload-photo-pill-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.74rem;
+  font-weight: 800;
+  background: #FFFFFF;
+  color: var(--text-secondary);
+  border: 1px solid rgba(20, 20, 22, 0.08);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  transition: all 0.22s var(--ease-spring);
+}
+
+.avatar-gender-tab:hover,
+.avatar-upload-tab:hover,
+.upload-photo-pill-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--ink-black);
+  color: var(--ink-black);
+}
+
+.avatar-gender-tab.active {
+  background: var(--ink-black);
+  color: #FFFFFF;
+}
+
+.avatar-upload-tab,
+.upload-photo-pill-btn {
+  background: var(--butter-yellow);
+  color: var(--ink-black);
+}
+
+.avatar-helper-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.preset-avatars-grid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.preset-avatar-item {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  padding: 3px;
+  background: #FFFFFF;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.25s var(--ease-spring);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+}
+
+.preset-avatar-item img {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.preset-avatar-item:hover {
+  transform: translateY(-3px) scale(1.06);
+}
+
+.preset-avatar-item.selected {
+  border-color: var(--ink-black);
+  transform: scale(1.08);
+  box-shadow: 0 6px 14px rgba(20, 20, 22, 0.14);
+}
+
+.preset-gender-tag {
+  position: absolute;
+  bottom: -5px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  background: var(--ink-black);
+  color: #FFFFFF;
+}
+
+.onboarding-inputs-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.onboarding-submit-btn {
+  background: var(--ink-black);
+  color: #FFFFFF;
+  padding: 15px 24px;
+  border-radius: var(--radius-pill);
+  font-size: 0.95rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 12px 28px rgba(20, 20, 22, 0.22);
+  transition: all 0.3s var(--ease-spring);
+  margin-top: 4px;
+}
+
+.onboarding-submit-btn:hover {
+  transform: translateY(-3px) scale(1.015);
+  background: #232329;
+}
+
 /* ==========================================================================
    RESPONSIVE & MOBILE-FRIENDLY BREAKPOINTS
    ========================================================================== */
@@ -3249,5 +3569,21 @@ body.phone-frame-mode .notes-studio-layout {
     min-height: 52px;
     padding: 6px;
   }
+
+  .onboarding-card {
+    padding: 22px 18px;
+  }
+
+  .onboarding-avatar-section,
+  .profile-avatar-editor-box {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .avatar-tabs-row,
+  .preset-avatars-grid {
+    justify-content: center;
+  }
 }
+
 

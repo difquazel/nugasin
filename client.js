@@ -1,12 +1,14 @@
 /* ==========================================================================
    NUGASIN CAMPUS WORKSPACE — INTERACTIVE APP & 4-LAYER CLOUD SYNC ENGINE
+   Made by Maurence
    ========================================================================== */
 
 (() => {
   'use strict';
 
-  // Unique client session ID to avoid echoing SSE broadcasts back to self
   const CLIENT_ID = 'client-' + Math.random().toString(36).slice(2, 10);
+  const STORAGE_PREFIX = 'nugasin_v2_ws_';
+  const LAST_SPACE_KEY = 'nugasin_v2_last_space';
 
   // Indonesian Month & Day Names
   const MONTHS_ID = [
@@ -16,6 +18,137 @@
   const MONTHS_SHORT_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const DAYS_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   const WEEK_STRIP_LABELS = ['SN', 'SL', 'RB', 'KM', 'JM', 'SB', 'MG'];
+
+  // ==========================================================================
+  // BUILT-IN AVATAR PRESETS (3 COWOK & 3 CEWEK — Instant SVG Data URIs)
+  // ==========================================================================
+  function svgToDataUri(svgString) {
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svgString.trim());
+  }
+
+  const PRESET_AVATARS = [
+    {
+      id: 'boy-1',
+      gender: 'boy',
+      label: 'Cowok 1',
+      url: svgToDataUri(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+          <rect width="120" height="120" rx="24" fill="#F7DF83"/>
+          <circle cx="60" cy="112" r="38" fill="#141416"/>
+          <path d="M46 82 h28 v16 h-28 z" fill="#F5CBA7"/>
+          <circle cx="60" cy="56" r="26" fill="#FAD7B8"/>
+          <path d="M32 50 C32 26, 88 26, 88 50 C88 38, 72 34, 60 35 C46 36, 35 42, 32 50 Z" fill="#1C1C21"/>
+          <path d="M36 38 Q60 20 84 38 Q75 26 58 27 Q42 28 36 38 Z" fill="#2A2A32"/>
+          <circle cx="50" cy="56" r="3.2" fill="#141416"/>
+          <circle cx="70" cy="56" r="3.2" fill="#141416"/>
+          <rect x="41" y="49" width="17" height="13" rx="4" fill="none" stroke="#141416" stroke-width="2.4"/>
+          <rect x="62" y="49" width="17" height="13" rx="4" fill="none" stroke="#141416" stroke-width="2.4"/>
+          <line x1="58" y1="55" x2="62" y2="55" stroke="#141416" stroke-width="2.4"/>
+          <path d="M53 68 Q60 74 67 68" fill="none" stroke="#141416" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+      `)
+    },
+    {
+      id: 'boy-2',
+      gender: 'boy',
+      label: 'Cowok 2',
+      url: svgToDataUri(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+          <rect width="120" height="120" rx="24" fill="#B8CFF6"/>
+          <circle cx="60" cy="112" r="38" fill="#2B4C7E"/>
+          <path d="M48 82 h24 v14 h-24 z" fill="#F1C29B"/>
+          <circle cx="60" cy="56" r="25" fill="#F7CFA8"/>
+          <path d="M33 52 C33 24, 87 24, 87 52 C82 36, 65 34, 52 38 C42 40, 36 45, 33 52 Z" fill="#3B281E"/>
+          <circle cx="50" cy="56" r="3.2" fill="#141416"/>
+          <circle cx="70" cy="56" r="3.2" fill="#141416"/>
+          <path d="M46 47 Q50 44 54 47" fill="none" stroke="#3B281E" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M66 47 Q70 44 74 47" fill="none" stroke="#3B281E" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M52 67 Q60 74 68 67" fill="none" stroke="#141416" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+      `)
+    },
+    {
+      id: 'boy-3',
+      gender: 'boy',
+      label: 'Cowok 3',
+      url: svgToDataUri(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+          <rect width="120" height="120" rx="24" fill="#BEE3E5"/>
+          <circle cx="60" cy="112" r="38" fill="#6461A6"/>
+          <path d="M47 82 h26 v15 h-26 z" fill="#E8B892"/>
+          <circle cx="60" cy="56" r="25" fill="#F3C6A2"/>
+          <path d="M34 48 C34 22, 86 22, 86 48 C80 34, 40 34, 34 48 Z" fill="#141416"/>
+          <circle cx="44" cy="34" r="8" fill="#141416"/>
+          <circle cx="60" cy="30" r="9" fill="#141416"/>
+          <circle cx="75" cy="34" r="8" fill="#141416"/>
+          <circle cx="50" cy="56" r="3.2" fill="#141416"/>
+          <circle cx="70" cy="56" r="3.2" fill="#141416"/>
+          <path d="M53 67 Q60 72 67 67" fill="none" stroke="#141416" stroke-width="2.6" stroke-linecap="round"/>
+        </svg>
+      `)
+    },
+    {
+      id: 'girl-1',
+      gender: 'girl',
+      label: 'Cewek 1',
+      url: svgToDataUri(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+          <rect width="120" height="120" rx="24" fill="#F3B9DF"/>
+          <path d="M28 55 C28 24, 92 24, 92 55 L96 96 L24 96 Z" fill="#231B20"/>
+          <circle cx="60" cy="114" r="37" fill="#C94A9E"/>
+          <path d="M48 80 h24 v16 h-24 z" fill="#FAD7B8"/>
+          <circle cx="60" cy="56" r="24" fill="#FFE0C4"/>
+          <path d="M34 50 Q48 32 60 42 Q72 32 86 50 C84 32, 36 32, 34 50 Z" fill="#231B20"/>
+          <circle cx="50" cy="56" r="3.2" fill="#141416"/>
+          <circle cx="70" cy="56" r="3.2" fill="#141416"/>
+          <circle cx="44" cy="62" r="4" fill="#F48FB1" opacity="0.55"/>
+          <circle cx="76" cy="62" r="4" fill="#F48FB1" opacity="0.55"/>
+          <path d="M54 67 Q60 72 66 67" fill="none" stroke="#141416" stroke-width="2.4" stroke-linecap="round"/>
+          <circle cx="80" cy="42" r="4.5" fill="#F7DF83"/>
+        </svg>
+      `)
+    },
+    {
+      id: 'girl-2',
+      gender: 'girl',
+      label: 'Cewek 2',
+      url: svgToDataUri(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+          <rect width="120" height="120" rx="24" fill="#CBC9F7"/>
+          <path d="M28 60 C28 24, 92 24, 92 60 L96 108 L24 108 Z" fill="#6461A6"/>
+          <circle cx="60" cy="114" r="38" fill="#141416"/>
+          <circle cx="60" cy="57" r="22" fill="#FFE0C4"/>
+          <path d="M38 48 Q60 34 82 48 C78 32, 42 32, 38 48 Z" fill="#4A478A"/>
+          <circle cx="51" cy="56" r="3" fill="#141416"/>
+          <circle cx="69" cy="56" r="3" fill="#141416"/>
+          <circle cx="45" cy="62" r="3.8" fill="#F48FB1" opacity="0.5"/>
+          <circle cx="75" cy="62" r="3.8" fill="#F48FB1" opacity="0.5"/>
+          <path d="M54 66 Q60 71 66 66" fill="none" stroke="#141416" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+      `)
+    },
+    {
+      id: 'girl-3',
+      gender: 'girl',
+      label: 'Cewek 3',
+      url: svgToDataUri(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+          <rect width="120" height="120" rx="24" fill="#F2D6C1"/>
+          <circle cx="60" cy="22" r="14" fill="#4A2C20"/>
+          <path d="M32 56 C32 28, 88 28, 88 56 L90 92 L30 92 Z" fill="#4A2C20"/>
+          <circle cx="60" cy="114" r="37" fill="#9FAF67"/>
+          <path d="M48 80 h24 v16 h-24 z" fill="#F7CFA8"/>
+          <circle cx="60" cy="57" r="24" fill="#FFE0C4"/>
+          <path d="M35 50 Q60 34 85 50 C82 32, 38 32, 35 50 Z" fill="#4A2C20"/>
+          <circle cx="50" cy="56" r="3.2" fill="#141416"/>
+          <circle cx="70" cy="56" r="3.2" fill="#141416"/>
+          <circle cx="44" cy="62" r="4" fill="#F4A2A0" opacity="0.6"/>
+          <circle cx="76" cy="62" r="4" fill="#F4A2A0" opacity="0.6"/>
+          <path d="M53 67 Q60 73 67 67" fill="none" stroke="#141416" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+      `)
+    }
+  ];
 
   // Helper for formatting YYYY-MM-DD relative to today
   function getOffsetDateStr(offsetDays = 0) {
@@ -108,183 +241,77 @@
         osc.start(now);
         osc.stop(now + 0.055);
       }
-    } catch (e) {
-      // Ignore audio errors on restricted autoplay
-    }
+    } catch (e) {}
   }
 
   // ==========================================================================
-  // DEFAULT INITIAL DATA (Rich Campus Tasks, Notes & Courses)
+  // CLEAN EMPTY INITIAL DATA (0 Tasks, 0 Notes, Requires Onboarding)
   // ==========================================================================
-  function createDefaultWorkspaceData() {
+  function createEmptyWorkspaceData() {
     return {
-      version: 1,
+      version: 2,
       updatedAt: new Date().toISOString(),
       profile: {
-        name: 'Rownok',
-        major: 'Semester 5 • Teknik Informatika',
-        focusMinutesToday: 95,
-        streakDays: 12
+        onboarded: false,
+        name: '',
+        major: '',
+        campus: '',
+        avatarUrl: PRESET_AVATARS[0].url,
+        focusMinutesToday: 0,
+        streakDays: 0
       },
-      courses: [
-        'Desain Antarmuka (UI/UX)',
-        'Algoritma & Struktur Data',
-        'Basis Data Lanjut',
-        'Kecerdasan Buatan (AI)',
-        'Rekayasa Perangkat Lunak',
-        'Kalkulus & Aljabar'
-      ],
-      tasks: [
-        {
-          id: 'task-1',
-          title: 'Finalisasi Prototype Mobile App & Usability Testing',
-          course: 'Desain Antarmuka (UI/UX)',
-          category: 'Tugas Kelompok',
-          dueDate: getOffsetDateStr(0),
-          dueTime: '19:00',
-          priority: 'high',
-          status: 'in-progress',
-          description: 'Pastikan komponen Bento Card, micro-interaction, dan kalender sudah responsif untuk presentasi.',
-          link: 'https://figma.com',
-          subtasks: [
-            { id: 'st-1', text: 'Susun palet warna Butter Yellow & Pastel Pink', done: true },
-            { id: 'st-2', text: 'Buat animasi transisi antar halaman', done: true },
-            { id: 'st-3', text: 'Uji coba link penyimpanan cloud', done: false }
-          ]
-        },
-        {
-          id: 'task-2',
-          title: 'Laporan Praktikum Optimasi Query & Indexing PostgreSQL',
-          course: 'Basis Data Lanjut',
-          category: 'Praktikum',
-          dueDate: getOffsetDateStr(1),
-          dueTime: '23:59',
-          priority: 'medium',
-          status: 'pending',
-          description: 'Bandingkan waktu eksekusi EXPLAIN ANALYZE sebelum dan sesudah B-Tree Index.',
-          link: '',
-          subtasks: [
-            { id: 'st-4', text: 'Screenshot hasil benchmark 100.000 baris data', done: true },
-            { id: 'st-5', text: 'Tulis analisis kesimpulan di Bab 4 (.pdf)', done: false }
-          ]
-        },
-        {
-          id: 'task-3',
-          title: 'Kuis Mingguan: Graph Traversal (BFS, DFS & Dijkstra)',
-          course: 'Algoritma & Struktur Data',
-          category: 'Kuis / Ujian',
-          dueDate: getOffsetDateStr(2),
-          dueTime: '10:30',
-          priority: 'high',
-          status: 'pending',
-          description: 'Pelajari kompleksitas waktu O(V + E) dan implementasi Priority Queue.',
-          link: '',
-          subtasks: [
-            { id: 'st-6', text: 'Latihan 5 soal shortest path', done: false }
-          ]
-        },
-        {
-          id: 'task-4',
-          title: 'Implementasi Model Klasifikasi NLP Sentiment Analysis',
-          course: 'Kecerdasan Buatan (AI)',
-          category: 'Tugas Individu',
-          dueDate: getOffsetDateStr(4),
-          dueTime: '21:00',
-          priority: 'low',
-          status: 'pending',
-          description: 'Dataset ulasan aplikasi menggunakan TF-IDF dan Logistic Regression / IndoBERT.',
-          link: 'https://colab.research.google.com',
-          subtasks: [
-            { id: 'st-7', text: 'Cleaning & preprocessing dataset', done: true },
-            { id: 'st-8', text: 'Evaluasi F1-Score dan Confusion Matrix', done: false }
-          ]
-        },
-        {
-          id: 'task-5',
-          title: 'Dokumen SRS & Use Case Diagram Sistem Akademik',
-          course: 'Rekayasa Perangkat Lunak',
-          category: 'Tugas Kelompok',
-          dueDate: getOffsetDateStr(-1),
-          dueTime: '17:00',
-          priority: 'medium',
-          status: 'completed',
-          description: 'Sudah dikumpulkan ke portal E-Learning kampus tepat waktu.',
-          link: '',
-          subtasks: [
-            { id: 'st-9', text: 'Review Activity Diagram bersama kelompok', done: true },
-            { id: 'st-10', text: 'Submit PDF ke ketua kelas', done: true }
-          ]
-        }
-      ],
-      notes: [
-        {
-          id: 'note-1',
-          title: 'Prinsip Bento Grid & Micro-Interactions Modern',
-          course: 'Desain Antarmuka (UI/UX)',
-          date: getOffsetDateStr(0),
-          tag: 'Pertemuan 6 • Rangkuman Materi',
-          color: 'yellow',
-          pinned: true,
-          updatedAt: new Date().toISOString(),
-          content: `<h2>✨ Prinsip Utama UI Pastel & Bento</h2>
-<p>Desain antarmuka modern menggabungkan <b>hierarki visual yang jelas</b> dengan warna pastel hangat agar mata tidak cepat lelah saat mengerjakan tugas berjam-jam.</p>
-<div class="note-callout-box">💡 <b>Tips Penting Dosen:</b> Gunakan kontras tinggi (Deep Ink Black <code>#141416</code>) pada tombol aksi utama di atas latar belakang warna pastel seperti <span style="background-color: rgb(247, 223, 131);">Butter Yellow</span> atau <span style="background-color: rgb(243, 185, 223);">Pastel Pink</span>.</div>
-<h3>Checklist Komponen Desain:</h3>
-<ul>
-  <li>✅ Gunakan sudut membulat (<i>border-radius: 26px - 32px</i>) untuk kesan ramah dan organik.</li>
-  <li>✅ Berikan umpan balik instan (<i>spring physics animation</i>) saat kartu diklik.</li>
-  <li>✅ Pastikan navigasi utama mudah dijangkau ibu jari pada layar HP.</li>
-</ul>`
-        },
-        {
-          id: 'note-2',
-          title: 'Algoritma Shortest Path: Dijkstra vs Bellman-Ford',
-          course: 'Algoritma & Struktur Data',
-          date: getOffsetDateStr(-1),
-          tag: 'Pertemuan 5 • Persiapan Kuis',
-          color: 'pink',
-          pinned: true,
-          updatedAt: new Date().toISOString(),
-          content: `<h2>📐 Perbandingan Algoritma Graf</h2>
-<p>Saat mencari jalur terpendek dari satu titik awal (<i>Single-Source Shortest Path</i>), perhatikan apakah graf memiliki bobot negatif:</p>
-<ul>
-  <li><b>Algoritma Dijkstra:</b> Sangat cepat menggunakan <span style="background-color: rgb(190, 227, 229);">Min-Priority Queue</span> dengan kompleksitas <code>O((V + E) log V)</code>, namun <b>tidak bisa</b> menangani bobot tepi negatif.</li>
-  <li><b>Bellman-Ford:</b> Melakukan relaksasi sebanyak <code>V - 1</code> kali. Kompleksitas <code>O(V × E)</code>, mampu mendeteksi <i>negative weight cycle</i>.</li>
-</ul>
-<pre class="note-code-block">function relax(u, v, weight) {
-  if (dist[u] + weight < dist[v]) {
-    dist[v] = dist[u] + weight;
-    prev[v] = u;
-  }
-}</pre>`
-        },
-        {
-          id: 'note-3',
-          title: 'Indexing, Normalisasi 3NF & Optimasi Transaksi ACID',
-          course: 'Basis Data Lanjut',
-          date: getOffsetDateStr(-2),
-          tag: 'Pertemuan 4 • Catatan Praktikum',
-          color: 'lavender',
-          pinned: false,
-          updatedAt: new Date().toISOString(),
-          content: `<h2>🗄️ Kapan Harus Menggunakan Index?</h2>
-<p>Index mempercepat operasi <code>SELECT</code> dan <code>JOIN</code> secara drastis, tetapi menambah sedikit overhead saat melakukan <code>INSERT</code>, <code>UPDATE</code>, dan <code>DELETE</code>.</p>
-<div class="note-callout-box">📌 Gunakan <b>Composite Index</b> dengan urutan kolom paling selektif di posisi paling kiri (<i>Leftmost Prefix Rule</i>).</div>`
-        }
-      ]
+      courses: [],
+      tasks: [],
+      notes: []
     };
+  }
+
+  // ==========================================================================
+  // IMAGE UPLOAD RESIZER (Crops & Resizes Custom Photo to 200x200 Data URL)
+  // ==========================================================================
+  function processUploadedAvatarFile(file) {
+    return new Promise((resolve, reject) => {
+      if (!file || !file.type.startsWith('image/')) {
+        reject(new Error('Bukan file gambar'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = 200;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+
+          // Center square crop
+          const minSide = Math.min(img.width, img.height);
+          const sx = (img.width - minSide) / 2;
+          const sy = (img.height - minSide) / 2;
+          ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(dataUrl);
+        };
+        img.onerror = () => reject(new Error('Gagal memuat gambar'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Gagal membaca file'));
+      reader.readAsDataURL(file);
+    });
   }
 
   // ==========================================================================
   // 4-LAYER CLOUD & PERMALINK PERSISTENCE ENGINE
   // ==========================================================================
-  let currentSpaceId = 'kampus-utama';
-  let appData = createDefaultWorkspaceData();
+  let currentSpaceId = 'ruang-kuliah';
+  let appData = createEmptyWorkspaceData();
   let activeNoteId = null;
   let selectedCalendarDate = getOffsetDateStr(0);
   let currentCalendarMonth = new Date().getMonth();
   let currentCalendarYear = new Date().getFullYear();
-  let currentStackFilter = 'priority'; // 'priority' | 'upcoming' | 'pinned-notes'
+  let currentStackFilter = 'priority';
   let currentTaskStatusFilter = 'all';
   let currentTaskCourseFilter = 'all';
   let currentNoteCourseFilter = 'all';
@@ -292,7 +319,11 @@
   let tempSubtasks = [];
   let sseConnection = null;
 
-  // Base64 UTF-8 URL-safe encoding/decoding for Smart Link Snapshots (#s=...)
+  // Avatar selection states
+  let selectedOnboardingAvatar = PRESET_AVATARS[0].url;
+  let selectedProfileModalAvatar = PRESET_AVATARS[0].url;
+  let currentAvatarGenderFilter = 'all';
+
   function encodeStateToUrlHash(stateObj) {
     try {
       const jsonStr = JSON.stringify(stateObj);
@@ -323,12 +354,11 @@
     }
   }
 
-  // IndexedDB Wrapper for large offline-resilient storage
-  const IDB_NAME = 'NugasinCampusCloudDB';
+  const IDB_NAME = 'NugasinCampusCloudDB_v2';
   const IDB_STORE = 'workspaces';
 
   function openIndexedDB() {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (!window.indexedDB) return resolve(null);
       const req = indexedDB.open(IDB_NAME, 1);
       req.onupgradeneeded = (e) => {
@@ -372,7 +402,6 @@
     });
   }
 
-  // Update Sync Status UI Indicator
   function setSyncIndicator(state, message) {
     const dot = document.getElementById('syncDot');
     const text = document.getElementById('syncStatusText');
@@ -389,7 +418,6 @@
     }
   }
 
-  // Build Full Shareable Permanent Link (Includes both ?space=ID and #s=snapshot)
   function getShareablePermanentLink() {
     const url = new URL(window.location.href);
     url.searchParams.set('space', currentSpaceId);
@@ -400,38 +428,36 @@
     return url.toString();
   }
 
-  // Save Workspace across all 4 layers (LocalStorage + IndexedDB + URL Permalink + Cloud Server API)
   let cloudSaveTimer = null;
-  function saveWorkspace(options = { silent: false }) {
+  function saveWorkspace() {
     appData.updatedAt = new Date().toISOString();
 
-    // Layer 1: LocalStorage (Instant synchronous save)
+    // Layer 1: LocalStorage
     try {
-      localStorage.setItem(`nugasin_ws_${currentSpaceId}`, JSON.stringify(appData));
-      localStorage.setItem('nugasin_last_space', currentSpaceId);
+      localStorage.setItem(`${STORAGE_PREFIX}${currentSpaceId}`, JSON.stringify(appData));
+      localStorage.setItem(LAST_SPACE_KEY, currentSpaceId);
     } catch (e) {}
 
     // Layer 2: IndexedDB
     saveToIndexedDB(currentSpaceId, appData);
 
-    // Layer 3: Smart URL State Update (keeps URL link always up-to-date when bookmarked or refreshed!)
+    // Layer 3: Smart URL State Update
     try {
       const url = new URL(window.location.href);
       url.searchParams.set('space', currentSpaceId);
       const encoded = encodeStateToUrlHash(appData);
-      if (encoded && encoded.length < 32000) {
+      if (encoded && encoded.length < 48000) {
         url.hash = `s=${encoded}`;
       }
       window.history.replaceState(null, '', url.toString());
     } catch (e) {}
 
-    // Update Shareable Link input if modal is open
     const linkInput = document.getElementById('shareableFullLinkInput');
     if (linkInput) {
       linkInput.value = getShareablePermanentLink();
     }
 
-    // Layer 4: Cloud Server API (Debounced network sync)
+    // Layer 4: Cloud Server API
     setSyncIndicator('syncing', 'Menyimpan ke Cloud...');
     if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
     cloudSaveTimer = setTimeout(async () => {
@@ -450,16 +476,14 @@
         if (res.ok) {
           setSyncIndicator('online', 'Tersimpan di Cloud ✨');
         } else {
-          setSyncIndicator('online', 'Tersimpan di Link & Lokal');
+          setSyncIndicator('online', 'Tersimpan di Link ✨');
         }
       } catch (err) {
-        // Even if hosted on static hosting without Node backend, URL + LocalStorage + IndexedDB are 100% saved
         setSyncIndicator('online', 'Tersimpan di Link ✨');
       }
     }, 280);
   }
 
-  // Subscribe to Server-Sent Events (SSE) for live multi-tab / multi-device sync
   function subscribeToLiveStream(spaceId) {
     if (sseConnection) {
       try { sseConnection.close(); } catch (e) {}
@@ -472,7 +496,7 @@
           const msg = JSON.parse(event.data);
           if (msg.type === 'sync_update' && msg.excludeClientId !== CLIENT_ID && msg.data) {
             appData = msg.data;
-            localStorage.setItem(`nugasin_ws_${currentSpaceId}`, JSON.stringify(appData));
+            localStorage.setItem(`${STORAGE_PREFIX}${currentSpaceId}`, JSON.stringify(appData));
             renderAll();
             setSyncIndicator('online', 'Disinkronkan Live 🔄');
           }
@@ -485,49 +509,47 @@
     } catch (e) {}
   }
 
-  // Initial Load Sequence from URL Hash / Cloud API / IndexedDB / LocalStorage
   async function initWorkspaceLoad() {
     const parsedUrl = new URL(window.location.href);
     const spaceParam = parsedUrl.searchParams.get('space');
-    const savedLastSpace = localStorage.getItem('nugasin_last_space');
+    const savedLastSpace = localStorage.getItem(LAST_SPACE_KEY);
 
     if (spaceParam) {
-      currentSpaceId = spaceParam.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-') || 'kampus-utama';
+      currentSpaceId = spaceParam.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-') || 'ruang-kuliah';
     } else if (savedLastSpace) {
       currentSpaceId = savedLastSpace;
     }
 
-    // Check if URL has a Smart Permalink Snapshot (#s=...)
     let loadedFromUrlHash = null;
     if (window.location.hash && window.location.hash.startsWith('#s=')) {
       const rawHash = window.location.hash.slice(3);
       loadedFromUrlHash = decodeStateFromUrlHash(rawHash);
     }
 
-    // Check LocalStorage & IndexedDB
     let localData = null;
     try {
-      const rawLocal = localStorage.getItem(`nugasin_ws_${currentSpaceId}`);
+      const rawLocal = localStorage.getItem(`${STORAGE_PREFIX}${currentSpaceId}`);
       if (rawLocal) localData = JSON.parse(rawLocal);
     } catch (e) {}
     if (!localData) {
       localData = await loadFromIndexedDB(currentSpaceId);
     }
 
-    // Check Backend Cloud Server API
     let serverData = null;
     try {
       const res = await fetch(`/api/workspace/${encodeURIComponent(currentSpaceId)}`);
       if (res.ok) {
         const json = await res.json();
-        if (json.exists && json.data) {
+        if (json.exists && json.data && json.data.version === 2) {
           serverData = json.data;
         }
       }
     } catch (e) {}
 
-    // Pick the freshest data source!
-    const candidates = [serverData, localData, loadedFromUrlHash].filter(Boolean);
+    const candidates = [serverData, localData, loadedFromUrlHash].filter(
+      (item) => item && item.version === 2
+    );
+
     if (candidates.length > 0) {
       candidates.sort((a, b) => {
         const tA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -536,27 +558,131 @@
       });
       appData = candidates[0];
     } else {
-      appData = createDefaultWorkspaceData();
+      appData = createEmptyWorkspaceData();
     }
 
-    // Ensure data integrity
+    // Ensure clean structure
     if (!Array.isArray(appData.tasks)) appData.tasks = [];
     if (!Array.isArray(appData.notes)) appData.notes = [];
-    if (!Array.isArray(appData.courses) || appData.courses.length === 0) {
-      appData.courses = ['Desain Antarmuka (UI/UX)', 'Algoritma & Struktur Data', 'Basis Data Lanjut'];
-    }
+    if (!Array.isArray(appData.courses)) appData.courses = [];
     if (!appData.profile) {
-      appData.profile = { name: 'Rownok', major: 'Semester 5 • Informatika', focusMinutesToday: 75, streakDays: 12 };
+      appData.profile = {
+        onboarded: false,
+        name: '',
+        major: '',
+        campus: '',
+        avatarUrl: PRESET_AVATARS[0].url,
+        focusMinutesToday: 0,
+        streakDays: 0
+      };
     }
 
-    if (appData.notes.length > 0 && !activeNoteId) {
-      activeNoteId = appData.notes[0].id;
-    }
+    activeNoteId = appData.notes[0]?.id || null;
 
-    // Save back to ensure all 4 layers (including server & URL hash) are synchronized
-    saveWorkspace({ silent: true });
+    // Check if Onboarding Welcome Screen must be shown
+    checkAndShowOnboarding();
     subscribeToLiveStream(currentSpaceId);
     renderAll();
+  }
+
+  // ==========================================================================
+  // ONBOARDING WELCOME SCREEN & AVATAR PICKER LOGIC
+  // ==========================================================================
+  function checkAndShowOnboarding() {
+    const overlay = document.getElementById('onboardingOverlay');
+    if (!overlay) return;
+
+    const isProfileComplete = Boolean(
+      appData.profile &&
+      appData.profile.onboarded &&
+      appData.profile.name &&
+      appData.profile.major &&
+      appData.profile.campus
+    );
+
+    if (isProfileComplete) {
+      overlay.classList.add('hidden');
+    } else {
+      selectedOnboardingAvatar = appData.profile?.avatarUrl || PRESET_AVATARS[0].url;
+      const previewImg = document.getElementById('onboardingAvatarPreview');
+      if (previewImg) previewImg.src = selectedOnboardingAvatar;
+      renderOnboardingPresetGrid();
+      overlay.classList.remove('hidden');
+    }
+  }
+
+  function renderOnboardingPresetGrid() {
+    const grid = document.getElementById('onboardingPresetGrid');
+    if (!grid) return;
+
+    const filtered = currentAvatarGenderFilter === 'all'
+      ? PRESET_AVATARS
+      : PRESET_AVATARS.filter((a) => a.gender === currentAvatarGenderFilter);
+
+    grid.innerHTML = filtered.map((av) => {
+      const isSelected = selectedOnboardingAvatar === av.url;
+      const genderBadge = av.gender === 'boy' ? '👦 Cowok' : '👧 Cewek';
+      return `
+        <button type="button" class="preset-avatar-item ${isSelected ? 'selected' : ''}" data-preset-url="${escapeHtml(av.url)}" title="Pilih ${escapeHtml(av.label)}">
+          <img src="${escapeHtml(av.url)}" alt="${escapeHtml(av.label)}" />
+          <span class="preset-gender-tag">${genderBadge}</span>
+        </button>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('[data-preset-url]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectedOnboardingAvatar = btn.getAttribute('data-preset-url');
+        const previewImg = document.getElementById('onboardingAvatarPreview');
+        if (previewImg) previewImg.src = selectedOnboardingAvatar;
+        playSound('pop');
+        renderOnboardingPresetGrid();
+      });
+    });
+  }
+
+  function renderProfileModalPresetGrid() {
+    const grid = document.getElementById('profileModalPresetGrid');
+    if (!grid) return;
+
+    grid.innerHTML = PRESET_AVATARS.map((av) => {
+      const isSelected = selectedProfileModalAvatar === av.url;
+      const genderBadge = av.gender === 'boy' ? '👦 Cowok' : '👧 Cewek';
+      return `
+        <button type="button" class="preset-avatar-item ${isSelected ? 'selected' : ''}" data-profile-preset-url="${escapeHtml(av.url)}" title="Pilih ${escapeHtml(av.label)}">
+          <img src="${escapeHtml(av.url)}" alt="${escapeHtml(av.label)}" />
+          <span class="preset-gender-tag">${genderBadge}</span>
+        </button>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('[data-profile-preset-url]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectedProfileModalAvatar = btn.getAttribute('data-profile-preset-url');
+        const previewImg = document.getElementById('profileModalAvatarPreview');
+        if (previewImg) previewImg.src = selectedProfileModalAvatar;
+        playSound('pop');
+        renderProfileModalPresetGrid();
+      });
+    });
+  }
+
+  // Ensure any course typed by the user gets added to appData.courses
+  function ensureCourseRegistered(courseName) {
+    const clean = String(courseName || '').trim();
+    if (!clean) return 'Umum';
+    if (!appData.courses.includes(clean)) {
+      appData.courses.push(clean);
+    }
+    return clean;
+  }
+
+  function renderCoursesDatalist() {
+    const datalist = document.getElementById('coursesDatalist');
+    if (!datalist) return;
+    datalist.innerHTML = appData.courses
+      .map((c) => `<option value="${escapeHtml(c)}"></option>`)
+      .join('');
   }
 
   // ==========================================================================
@@ -603,7 +729,7 @@
       particles.forEach((p) => {
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.42; // gravity
+        p.vy += 0.42;
         p.rotation += p.vRot;
 
         ctx.save();
@@ -634,7 +760,6 @@
     document.querySelectorAll('[data-target-view]').forEach((btn) => {
       btn.classList.toggle('active', btn.getAttribute('data-target-view') === targetViewId);
     });
-    // Close quick FAB menu if open
     const fabMenu = document.getElementById('fabQuickMenu');
     const fabBtn = document.getElementById('dockFabButton');
     if (fabMenu) fabMenu.classList.add('hidden');
@@ -652,11 +777,14 @@
     const todayChip = document.getElementById('heroTodayDate');
     const statusTime = document.getElementById('statusBarTime');
 
-    if (nameEl) nameEl.textContent = `${appData.profile.name || 'Mahasiswa'}!`;
-    if (semEl) semEl.textContent = appData.profile.major || 'Semester Aktif • Kampus';
+    const displayName = appData.profile.name || 'Teman';
+    const majorText = appData.profile.major || 'Jurusan';
+    const campusText = appData.profile.campus || 'Kampus';
+
+    if (nameEl) nameEl.textContent = `${displayName}!`;
+    if (semEl) semEl.textContent = `${majorText} • ${campusText}`;
     if (avatarEl) {
-      const seed = encodeURIComponent(appData.profile.name || 'Rownok');
-      avatarEl.src = `https://api.dicebear.com/7.x/notionists/svg?seed=${seed}&backgroundColor=f7df83,f3b9df,bfc3f2`;
+      avatarEl.src = appData.profile.avatarUrl || PRESET_AVATARS[0].url;
     }
 
     const now = new Date();
@@ -667,7 +795,6 @@
       statusTime.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     }
 
-    // Badge counts
     const pendingTasks = appData.tasks.filter((t) => t.status !== 'completed').length;
     const navTaskBadge = document.getElementById('navTaskCountBadge');
     const navNoteBadge = document.getElementById('navNoteCountBadge');
@@ -676,6 +803,8 @@
     if (navTaskBadge) navTaskBadge.textContent = pendingTasks;
     if (navNoteBadge) navNoteBadge.textContent = appData.notes.length;
     if (heroNoteCount) heroNoteCount.textContent = appData.notes.length;
+
+    renderCoursesDatalist();
   }
 
   function renderDashboard() {
@@ -684,11 +813,10 @@
     const pendingTasks = totalTasks - completedTasks;
     const urgentTasks = appData.tasks.filter((t) => t.status !== 'completed' && getDaysDiffFromToday(t.dueDate) <= 2).length;
 
-    const pct = totalTasks === 0 ? 100 : Math.round((completedTasks / totalTasks) * 100);
+    const pct = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
     const pctEl = document.getElementById('dashboardProgressPct');
     if (pctEl) pctEl.textContent = `${pct}%`;
 
-    // Circular ring offset (circumference = 2 * PI * 46 ≈ 289)
     const ringCircle = document.getElementById('progressRingCircle');
     if (ringCircle) {
       const circumference = 289;
@@ -696,12 +824,10 @@
       ringCircle.style.strokeDashoffset = String(offset);
     }
 
-    // XP Points calculation (completed tasks * 150 + notes * 80 + focus mins * 5)
-    const xpScore = completedTasks * 150 + appData.notes.length * 80 + (appData.profile.focusMinutesToday || 75) * 6;
+    const xpScore = completedTasks * 150 + appData.notes.length * 80 + (appData.profile.focusMinutesToday || 0) * 6;
     const pointsEl = document.getElementById('progressRingPoints');
     if (pointsEl) pointsEl.textContent = String(xpScore);
 
-    // Blush 4-Metric Card
     const elPending = document.getElementById('metricPendingTasks');
     const elCompleted = document.getElementById('metricCompletedTasks');
     const elNotes = document.getElementById('metricTotalNotes');
@@ -714,7 +840,6 @@
     if (elUrgent) elUrgent.textContent = String(urgentTasks);
     if (blushBar) blushBar.style.width = `${pct}%`;
 
-    // Bento 2x2 descriptions
     const bentoTasksDesc = document.getElementById('bentoTasksDesc');
     const bentoNotesDesc = document.getElementById('bentoNotesDesc');
     const bentoCalDesc = document.getElementById('bentoCalendarDesc');
@@ -722,7 +847,6 @@
     if (bentoNotesDesc) bentoNotesDesc.textContent = `${appData.notes.length} catatan kuliah tersimpan online`;
     if (bentoCalDesc) bentoCalDesc.textContent = `Pantau jadwal kuliah & produktivitas harian`;
 
-    // Render Stacked Sage Folder Card
     renderSageStackedCard();
   }
 
@@ -748,16 +872,20 @@
         .slice(0, 3);
 
       if (priorityTasks.length === 0) {
-        listEl.innerHTML = `<div class="sage-pill-row" id="sageEmptyAddTask">
+        const emptyRow = document.createElement('div');
+        emptyRow.className = 'sage-pill-row';
+        emptyRow.innerHTML = `
           <div class="sage-row-left">
-            <span class="sage-row-icon">🎉</span>
+            <span class="sage-row-icon">✨</span>
             <div class="sage-row-text">
-              <span class="sage-row-title">Semua tugas beres!</span>
-              <span class="sage-row-meta">Klik untuk tambah target baru</span>
+              <span class="sage-row-title">Belum ada tugas aktif</span>
+              <span class="sage-row-meta">Klik untuk membuat tugas pertamamu</span>
             </div>
           </div>
           <span class="sage-row-chevron">+</span>
-        </div>`;
+        `;
+        emptyRow.addEventListener('click', () => openTaskModal());
+        listEl.appendChild(emptyRow);
         return;
       }
 
@@ -788,6 +916,24 @@
         .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
         .slice(0, 3);
 
+      if (upcoming.length === 0) {
+        const emptyRow = document.createElement('div');
+        emptyRow.className = 'sage-pill-row';
+        emptyRow.innerHTML = `
+          <div class="sage-row-left">
+            <span class="sage-row-icon">📅</span>
+            <div class="sage-row-text">
+              <span class="sage-row-title">Belum ada jadwal deadline</span>
+              <span class="sage-row-meta">Klik untuk tambah jadwal tugas baru</span>
+            </div>
+          </div>
+          <span class="sage-row-chevron">+</span>
+        `;
+        emptyRow.addEventListener('click', () => openTaskModal());
+        listEl.appendChild(emptyRow);
+        return;
+      }
+
       upcoming.forEach((task) => {
         const diff = getDaysDiffFromToday(task.dueDate);
         const diffLabel = diff < 0 ? 'Terlewat!' : diff === 0 ? 'Hari ini!' : diff === 1 ? 'Besok' : `${diff} hari lagi`;
@@ -811,8 +957,26 @@
         listEl.appendChild(row);
       });
     } else {
-      if (titleEl) titleEl.textContent = '📌 Catatan Kuliah Disematkan';
+      if (titleEl) titleEl.textContent = '📌 Catatan Kuliah Tersimpan';
       const notes = appData.notes.slice(0, 3);
+      if (notes.length === 0) {
+        const emptyRow = document.createElement('div');
+        emptyRow.className = 'sage-pill-row';
+        emptyRow.innerHTML = `
+          <div class="sage-row-left">
+            <span class="sage-row-icon">📝</span>
+            <div class="sage-row-text">
+              <span class="sage-row-title">Belum ada catatan kuliah</span>
+              <span class="sage-row-meta">Klik untuk mulai menulis catatan baru</span>
+            </div>
+          </div>
+          <span class="sage-row-chevron">+</span>
+        `;
+        emptyRow.addEventListener('click', () => createNewNote());
+        listEl.appendChild(emptyRow);
+        return;
+      }
+
       notes.forEach((note) => {
         const row = document.createElement('div');
         row.className = 'sage-pill-row';
@@ -820,8 +984,8 @@
           <div class="sage-row-left">
             <span class="sage-row-icon">📝</span>
             <div class="sage-row-text">
-              <span class="sage-row-title">${escapeHtml(note.title)}</span>
-              <span class="sage-row-meta">${escapeHtml(note.course)} • ${escapeHtml(note.tag || '')}</span>
+              <span class="sage-row-title">${escapeHtml(note.title || 'Catatan Tanpa Judul')}</span>
+              <span class="sage-row-meta">${escapeHtml(note.course)} • ${escapeHtml(note.tag || 'Catatan')}</span>
             </div>
           </div>
           <span class="sage-row-chevron">›</span>
@@ -840,12 +1004,11 @@
   // RENDERING ENGINE: VIEW 2 — STICKER MOODBOARD & PAPAN TUGAS
   // ==========================================================================
   function renderTasksView() {
-    // 1. Render Playful Geometric Stickers Stage (Top-Middle Reference Screen)
     const stage = document.getElementById('geometricStickersStage');
     if (stage) {
       stage.innerHTML = '';
       const activeTasks = appData.tasks.filter((t) => t.status !== 'completed');
-      const stickerTasks = activeTasks.length >= 3 ? activeTasks.slice(0, 3) : appData.tasks.slice(0, 3);
+      const stickerTasks = activeTasks.length > 0 ? activeTasks.slice(0, 3) : appData.tasks.slice(0, 3);
 
       const shapeClasses = [
         'sticker-square-yellow',
@@ -853,23 +1016,45 @@
         'sticker-circle-blue'
       ];
 
-      stickerTasks.forEach((task, index) => {
-        const sticker = document.createElement('div');
-        sticker.className = `geo-sticker ${shapeClasses[index % 3]}`;
-        sticker.innerHTML = `
-          <span class="geo-sticker-course">${escapeHtml(task.course.split(' ')[0])}</span>
-          <div class="geo-sticker-title">${escapeHtml(task.title)}</div>
-          <span class="geo-sticker-date">${formatSlashDate(task.dueDate)}</span>
-        `;
-        sticker.addEventListener('click', () => {
-          playSound('pop');
-          openTaskModal(task.id);
+      if (stickerTasks.length === 0) {
+        // Render 3 clean interactive empty stickers that let the user add a task when clicked
+        const emptyStickers = [
+          { badge: 'Prioritas 1', title: '+ Buat Tugas', sub: 'Klik di sini' },
+          { badge: 'Target', title: '+ Kuis / Ujian', sub: 'Klik di sini' },
+          { badge: 'Kampus', title: '+ Proyek Baru', sub: 'Klik di sini' }
+        ];
+        emptyStickers.forEach((item, index) => {
+          const sticker = document.createElement('div');
+          sticker.className = `geo-sticker ${shapeClasses[index % 3]}`;
+          sticker.innerHTML = `
+            <span class="geo-sticker-course">${item.badge}</span>
+            <div class="geo-sticker-title">${item.title}</div>
+            <span class="geo-sticker-date">${item.sub}</span>
+          `;
+          sticker.addEventListener('click', () => {
+            playSound('pop');
+            openTaskModal();
+          });
+          stage.appendChild(sticker);
         });
-        stage.appendChild(sticker);
-      });
+      } else {
+        stickerTasks.forEach((task, index) => {
+          const sticker = document.createElement('div');
+          sticker.className = `geo-sticker ${shapeClasses[index % 3]}`;
+          sticker.innerHTML = `
+            <span class="geo-sticker-course">${escapeHtml((task.course || 'Tugas').split(' ')[0])}</span>
+            <div class="geo-sticker-title">${escapeHtml(task.title)}</div>
+            <span class="geo-sticker-date">${formatSlashDate(task.dueDate)}</span>
+          `;
+          sticker.addEventListener('click', () => {
+            playSound('pop');
+            openTaskModal(task.id);
+          });
+          stage.appendChild(sticker);
+        });
+      }
     }
 
-    // 2. Populate Course Filter Dropdown
     const courseSelect = document.getElementById('taskCourseFilterSelect');
     if (courseSelect) {
       const prevVal = currentTaskCourseFilter;
@@ -878,7 +1063,6 @@
       courseSelect.value = appData.courses.includes(prevVal) ? prevVal : 'all';
     }
 
-    // 3. Render Filtered Tasks List
     const listContainer = document.getElementById('tasksListContainer');
     if (!listContainer) return;
 
@@ -897,7 +1081,6 @@
       filtered = filtered.filter((t) => t.course === currentTaskCourseFilter);
     }
 
-    // Sort: incomplete first, then by due date
     filtered.sort((a, b) => {
       if (a.status === 'completed' && b.status !== 'completed') return 1;
       if (a.status !== 'completed' && b.status === 'completed') return -1;
@@ -906,10 +1089,10 @@
 
     if (filtered.length === 0) {
       listContainer.innerHTML = `
-        <div class="task-item-card" style="align-items:center; text-align:center; padding: 32px;">
-          <div style="font-size:2rem;">🌟</div>
-          <h4 style="font-weight:800;">Tidak ada tugas pada filter ini</h4>
-          <p style="font-size:0.82rem; color:var(--text-secondary);">Klik tombol "+ Tambah Tugas" untuk membuat jadwal tugas baru.</p>
+        <div class="task-item-card" style="align-items:center; text-align:center; padding: 36px 20px;">
+          <div style="font-size:2.2rem;">📋</div>
+          <h4 style="font-weight:800; font-size:1.05rem;">Daftar Tugas Masih Kosong</h4>
+          <p style="font-size:0.84rem; color:var(--text-secondary); max-width:340px;">Klik tombol <strong>"+ Tambah Tugas"</strong> untuk mulai mencatat tugas harian, PR, atau jadwal ujian kampusmu.</p>
         </div>
       `;
       return;
@@ -961,7 +1144,7 @@
             </button>
             <div class="task-info-col">
               <div class="task-badges-top">
-                <span class="badge-course">${escapeHtml(task.course)}</span>
+                <span class="badge-course">${escapeHtml(task.course || 'Umum')}</span>
                 <span class="badge-category">${escapeHtml(task.category || 'Tugas')}</span>
                 <span class="badge-countdown ${isSafe ? 'safe' : ''}">${countdownText}</span>
               </div>
@@ -979,26 +1162,13 @@
         ${subtasksHtml}
       `;
 
-      // Event Listeners inside Task Card
-      const toggleBtn = card.querySelector(`[data-toggle-task="${task.id}"]`);
-      if (toggleBtn) {
-        toggleBtn.addEventListener('click', () => toggleTaskCompletion(task.id));
-      }
-
-      const editBtn = card.querySelector(`[data-edit-task="${task.id}"]`);
-      if (editBtn) {
-        editBtn.addEventListener('click', () => openTaskModal(task.id));
-      }
-
-      const delBtn = card.querySelector(`[data-delete-task="${task.id}"]`);
-      if (delBtn) {
-        delBtn.addEventListener('click', () => deleteTask(task.id));
-      }
+      card.querySelector(`[data-toggle-task="${task.id}"]`)?.addEventListener('click', () => toggleTaskCompletion(task.id));
+      card.querySelector(`[data-edit-task="${task.id}"]`)?.addEventListener('click', () => openTaskModal(task.id));
+      card.querySelector(`[data-delete-task="${task.id}"]`)?.addEventListener('click', () => deleteTask(task.id));
 
       card.querySelectorAll('.subtask-pill-item').forEach((stEl) => {
         stEl.addEventListener('click', () => {
-          const stId = stEl.getAttribute('data-subtask-id');
-          toggleSubtask(task.id, stId);
+          toggleSubtask(task.id, stEl.getAttribute('data-subtask-id'));
         });
       });
 
@@ -1031,7 +1201,6 @@
     st.done = !st.done;
     playSound('pop');
 
-    // If all subtasks are done and task was pending, set to in-progress
     const allDone = task.subtasks.length > 0 && task.subtasks.every((s) => s.done);
     if (allDone && task.status === 'pending') {
       task.status = 'in-progress';
@@ -1052,7 +1221,6 @@
   // RENDERING ENGINE: VIEW 3 — KALENDER KAMPUS & PINK AUDIENCE/STUDY FLOW
   // ==========================================================================
   function renderCalendarView() {
-    // 1. Update Pink Highlight Header for `selectedCalendarDate`
     const parts = selectedCalendarDate.split('-').map(Number);
     const selDateObj = new Date(parts[0], parts[1] - 1, parts[2]);
 
@@ -1078,10 +1246,8 @@
       }
     }
 
-    // 2. Render Weekly Day Strip (SN SL RB KM JM SB MG around selectedCalendarDate)
     renderWeeklyFlowStrip(selDateObj);
 
-    // 3. Render Monthly Calendar Grid
     const monthTitleEl = document.getElementById('calMonthYearTitle');
     if (monthTitleEl) {
       monthTitleEl.textContent = `${MONTHS_ID[currentCalendarMonth]} ${currentCalendarYear}`;
@@ -1092,13 +1258,11 @@
     gridEl.innerHTML = '';
 
     const firstDayOfMonth = new Date(currentCalendarYear, currentCalendarMonth, 1);
-    // Convert Sunday=0..Saturday=6 into Monday=0..Sunday=6
     const startWeekday = (firstDayOfMonth.getDay() + 6) % 7;
     const daysInMonth = new Date(currentCalendarYear, currentCalendarMonth + 1, 0).getDate();
     const daysInPrevMonth = new Date(currentCalendarYear, currentCalendarMonth, 0).getDate();
     const todayStr = getOffsetDateStr(0);
 
-    // Previous month trailing cells
     for (let i = startWeekday - 1; i >= 0; i--) {
       const dNum = daysInPrevMonth - i;
       const cell = document.createElement('div');
@@ -1107,7 +1271,6 @@
       gridEl.appendChild(cell);
     }
 
-    // Current month cells
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentCalendarYear}-${String(currentCalendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayTasks = appData.tasks.filter((t) => t.dueDate === dateStr);
@@ -1146,7 +1309,6 @@
       gridEl.appendChild(cell);
     }
 
-    // 4. Render Selected Date Agenda List
     const agendaHeading = document.getElementById('agendaDateHeading');
     const agendaList = document.getElementById('selectedDateAgendaList');
     if (agendaHeading) {
@@ -1211,14 +1373,12 @@
     });
   }
 
-  // Render the Weekly Strip & SVG Wave + Hatched Bar Chart (Matches Pink Screen Reference)
   function renderWeeklyFlowStrip(centerDateObj) {
     const stripEl = document.getElementById('weekPillsStrip');
     const chartBox = document.getElementById('pinkWaveChartBox');
     if (!stripEl || !chartBox) return;
 
-    // Get Monday of the selected week
-    const dayOfWeek = (centerDateObj.getDay() + 6) % 7; // 0=Mon .. 6=Sun
+    const dayOfWeek = (centerDateObj.getDay() + 6) % 7;
     const monday = new Date(centerDateObj);
     monday.setDate(centerDateObj.getDate() - dayOfWeek);
 
@@ -1234,16 +1394,14 @@
 
       const countTasks = appData.tasks.filter((t) => t.dueDate === dStr).length;
       const countNotes = appData.notes.filter((n) => n.date === dStr).length;
-      // Base visual curve + actual task/note weight
-      const baseWave = [52, 68, 45, 78, 86, 60, 72][i];
-      const score = Math.min(98, baseWave + countTasks * 12 + countNotes * 8);
+      const score = Math.min(100, countTasks * 25 + countNotes * 20);
       weekScores.push(score);
 
       const pill = document.createElement('button');
       pill.className = 'week-day-pill';
       if (dStr === selectedCalendarDate) {
         pill.classList.add('active-magenta');
-      } else if (countTasks > 0) {
+      } else if (countTasks > 0 || countNotes > 0) {
         pill.classList.add('active-black');
       }
       pill.innerHTML = `<span>${WEEK_STRIP_LABELS[i]}</span><small style="font-size:0.62rem;opacity:0.8;">${d.getDate()}</small>`;
@@ -1258,18 +1416,16 @@
     }
 
     const activeIdx = Math.max(0, weekDates.indexOf(selectedCalendarDate));
-    const activeScore = weekScores[activeIdx] || 73;
+    const activeScore = weekScores[activeIdx] || 0;
 
-    // Build SVG matching the Top-Right Pink "Audience Flow 73%" screen
     const width = 360;
     const height = 195;
     const colWidth = width / 7;
     const points = weekScores.map((s, idx) => ({
       x: Math.round(colWidth * idx + colWidth / 2),
-      y: Math.round(145 - (s / 100) * 95)
+      y: Math.round(142 - (Math.max(12, s) / 100) * 90)
     }));
 
-    // Smooth cubic bezier path
     let pathD = `M ${points[0].x} ${points[0].y}`;
     for (let i = 0; i < points.length - 1; i++) {
       const p0 = points[i];
@@ -1293,7 +1449,6 @@
           </pattern>
         </defs>
 
-        <!-- Vertical Timeline Grid Lines -->
         ${points.map((pt, i) => `
           <line x1="${pt.x}" y1="22" x2="${pt.x}" y2="152" stroke="rgba(20,20,22,0.18)" stroke-width="1" />
           <text x="${pt.x}" y="170" text-anchor="middle" font-size="10" font-weight="700" fill="#141416">
@@ -1301,22 +1456,16 @@
           </text>
         `).join('')}
 
-        <!-- Diagonal Hatched Bar Column from Reference Image -->
         <rect x="${hatchedX}" y="38" width="32" height="114" rx="4" fill="url(#diagonalHatch)" opacity="0.85" />
-
-        <!-- Dotted Secondary Wave -->
         <path d="${pathD}" fill="none" stroke="rgba(255,255,255,0.75)" stroke-width="2.5" stroke-dasharray="3 4" transform="translate(0, 12)" />
-
-        <!-- Main Smooth Curve -->
         <path d="${pathD}" fill="none" stroke="#C53B96" stroke-width="2.5" />
 
-        <!-- Active Percentage Label & Marker Dot -->
         <text x="${activePt.x}" y="${Math.max(24, activePt.y - 16)}" text-anchor="middle" font-size="22" font-weight="800" fill="#141416">
           ${activeScore}%
         </text>
         <circle cx="${activePt.x}" cy="${activePt.y}" r="5.5" fill="#141416" stroke="#FFFFFF" stroke-width="2" />
         <text x="${activePt.x}" y="190" text-anchor="middle" font-size="14" font-weight="700" fill="#FFFFFF">
-          Fokus Optimal
+          Aktivitas Hari Ini
         </text>
       </svg>
     `;
@@ -1326,7 +1475,6 @@
   // RENDERING ENGINE: VIEW 4 — CATATAN KULIAH STUDIO
   // ==========================================================================
   function renderNotesStudio() {
-    // 1. Render Course Filter Chips
     const chipsContainer = document.getElementById('notesCourseChips');
     if (chipsContainer) {
       const allCourses = ['all', ...appData.courses];
@@ -1345,7 +1493,6 @@
       });
     }
 
-    // 2. Filter Notes List
     let filteredNotes = [...appData.notes];
     if (currentNoteCourseFilter !== 'all') {
       filteredNotes = filteredNotes.filter((n) => n.course === currentNoteCourseFilter);
@@ -1360,7 +1507,6 @@
       );
     }
 
-    // Sort pinned first, then most recently updated
     filteredNotes.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -1370,48 +1516,66 @@
     const listEl = document.getElementById('notesCardsList');
     if (listEl) {
       listEl.innerHTML = '';
-      filteredNotes.forEach((note) => {
-        const card = document.createElement('div');
-        card.className = `note-list-card ${note.id === activeNoteId ? 'active-note' : ''}`;
-        card.setAttribute('data-color', note.color || 'cream');
-        const snippet = stripHtml(note.content || '').slice(0, 95) || 'Catatan kosong...';
-        card.innerHTML = `
-          <div class="note-card-meta-top">
-            <span>${escapeHtml(note.course)}</span>
-            <span>${note.pinned ? '📌 ' : ''}${formatDateDisplay(note.date)}</span>
+      if (filteredNotes.length === 0) {
+        listEl.innerHTML = `
+          <div style="text-align:center; padding: 24px 12px; color: var(--text-secondary); font-size: 0.82rem;">
+            Belum ada catatan tersimpan.<br/>Klik <strong>"+ Catatan Baru"</strong> di atas.
           </div>
-          <div class="note-card-title">${escapeHtml(note.title || 'Tanpa Judul')}</div>
-          <div class="note-card-snippet">${escapeHtml(snippet)}</div>
         `;
-        card.addEventListener('click', () => {
-          activeNoteId = note.id;
-          playSound('pop');
-          renderNotesStudio();
+      } else {
+        filteredNotes.forEach((note) => {
+          const card = document.createElement('div');
+          card.className = `note-list-card ${note.id === activeNoteId ? 'active-note' : ''}`;
+          card.setAttribute('data-color', note.color || 'cream');
+          const snippet = stripHtml(note.content || '').slice(0, 95) || 'Catatan masih kosong...';
+          card.innerHTML = `
+            <div class="note-card-meta-top">
+              <span>${escapeHtml(note.course || 'Umum')}</span>
+              <span>${note.pinned ? '📌 ' : ''}${formatDateDisplay(note.date)}</span>
+            </div>
+            <div class="note-card-title">${escapeHtml(note.title || 'Tanpa Judul')}</div>
+            <div class="note-card-snippet">${escapeHtml(snippet)}</div>
+          `;
+          card.addEventListener('click', () => {
+            activeNoteId = note.id;
+            playSound('pop');
+            renderNotesStudio();
+          });
+          listEl.appendChild(card);
         });
-        listEl.appendChild(card);
-      });
+      }
     }
 
-    // 3. Populate Active Note Editor
+    const emptyBox = document.getElementById('noteEmptyStateBox');
+    const editorWrap = document.getElementById('noteActiveEditorWrap');
+
     let activeNote = appData.notes.find((n) => n.id === activeNoteId);
     if (!activeNote && appData.notes.length > 0) {
       activeNote = appData.notes[0];
       activeNoteId = activeNote.id;
     }
 
-    const courseSel = document.getElementById('activeNoteCourseSelect');
-    if (courseSel) {
-      courseSel.innerHTML = appData.courses.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    if (!activeNote) {
+      emptyBox?.classList.remove('hidden');
+      editorWrap?.classList.add('hidden');
+      return;
     }
 
-    if (!activeNote) return;
+    emptyBox?.classList.add('hidden');
+    editorWrap?.classList.remove('hidden');
 
-    if (courseSel) courseSel.value = activeNote.course || appData.courses[0];
+    const courseSel = document.getElementById('activeNoteCourseSelect');
+    if (courseSel && document.activeElement !== courseSel) {
+      courseSel.value = activeNote.course || '';
+    }
+
     const dateInput = document.getElementById('activeNoteDateInput');
     if (dateInput) dateInput.value = activeNote.date || getOffsetDateStr(0);
 
     const tagInput = document.getElementById('activeNoteTagInput');
-    if (tagInput) tagInput.value = activeNote.tag || '';
+    if (tagInput && document.activeElement !== tagInput) {
+      tagInput.value = activeNote.tag || '';
+    }
 
     const titleInput = document.getElementById('activeNoteTitleInput');
     if (titleInput && document.activeElement !== titleInput) {
@@ -1451,16 +1615,20 @@
   }
 
   function createNewNote(prefillDate = null) {
+    const defaultCourse = currentNoteCourseFilter !== 'all'
+      ? currentNoteCourseFilter
+      : (appData.courses[0] || '');
+
     const newNote = {
       id: 'note-' + Date.now(),
-      title: 'Catatan Kuliah Baru',
-      course: currentNoteCourseFilter !== 'all' ? currentNoteCourseFilter : (appData.courses[0] || 'Umum'),
+      title: '',
+      course: defaultCourse,
       date: prefillDate || getOffsetDateStr(0),
-      tag: 'Pertemuan Baru • Materi Kuliah',
-      color: 'yellow',
+      tag: '',
+      color: 'cream',
       pinned: false,
       updatedAt: new Date().toISOString(),
-      content: `<p>Mulai tulis poin penting perkuliahan di sini...</p>`
+      content: ''
     };
     appData.notes.unshift(newNote);
     activeNoteId = newNote.id;
@@ -1471,9 +1639,8 @@
     const titleInput = document.getElementById('activeNoteTitleInput');
     if (titleInput) {
       titleInput.focus();
-      titleInput.select();
     }
-    showToast('Catatan kuliah baru dibuat ✨', '📝');
+    showToast('Lembar catatan baru siap ditulis ✨', '📝');
   }
 
   // ==========================================================================
@@ -1482,17 +1649,17 @@
   function openTaskModal(taskId = null, prefillDate = null) {
     const modal = document.getElementById('taskModalBackdrop');
     const titleEl = document.getElementById('taskModalTitle');
-    const courseSel = document.getElementById('taskCourseInput');
-    if (!modal || !courseSel) return;
+    const courseInput = document.getElementById('taskCourseInput');
+    if (!modal || !courseInput) return;
 
-    courseSel.innerHTML = appData.courses.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    renderCoursesDatalist();
 
     const existing = taskId ? appData.tasks.find((t) => t.id === taskId) : null;
     document.getElementById('taskFormId').value = existing ? existing.id : '';
     document.getElementById('taskTitleInput').value = existing ? existing.title : '';
-    courseSel.value = existing ? existing.course : (appData.courses[0] || '');
+    courseInput.value = existing ? (existing.course || '') : (appData.courses[0] || '');
     document.getElementById('taskCategoryInput').value = existing ? (existing.category || 'Tugas Individu') : 'Tugas Individu';
-    document.getElementById('taskDueDateInput').value = existing ? existing.dueDate : (prefillDate || getOffsetDateStr(1));
+    document.getElementById('taskDueDateInput').value = existing ? existing.dueDate : (prefillDate || getOffsetDateStr(0));
     document.getElementById('taskDueTimeInput').value = existing ? (existing.dueTime || '23:59') : '23:59';
     document.getElementById('taskPriorityInput').value = existing ? (existing.priority || 'medium') : 'high';
     document.getElementById('taskDescInput').value = existing ? (existing.description || '') : '';
@@ -1549,7 +1716,7 @@
       islandText.textContent = pomoRunning ? `⏱️ Fokus ${formatted}` : 'Siap Nugas ✨';
     }
     if (totalEl) {
-      totalEl.textContent = String(appData.profile.focusMinutesToday || 75);
+      totalEl.textContent = String(appData.profile.focusMinutesToday || 0);
     }
   }
 
@@ -1569,7 +1736,7 @@
         } else {
           clearInterval(pomoInterval);
           pomoRunning = false;
-          appData.profile.focusMinutesToday = (appData.profile.focusMinutesToday || 75) + 25;
+          appData.profile.focusMinutesToday = (appData.profile.focusMinutesToday || 0) + 25;
           playSound('success');
           triggerConfetti();
           saveWorkspace();
@@ -1607,7 +1774,6 @@
       playSound('success');
       showToast('Link Catatan Online berhasil disalin! Buka di mana saja tidak akan hilang 🔗', '✅');
     }).catch(() => {
-      // Fallback
       const input = document.getElementById('shareableFullLinkInput');
       if (input) {
         input.value = link;
@@ -1631,7 +1797,72 @@
   // EVENT LISTENERS BINDING
   // ==========================================================================
   function bindEvents() {
-    // View Navigation (Top tabs + Bottom Dock + Bento Cards)
+    // ONBOARDING EVENTS (Gender Tabs, Photo Upload, Submit)
+    document.querySelectorAll('.avatar-gender-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.avatar-gender-tab').forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentAvatarGenderFilter = tab.getAttribute('data-gender-tab') || 'all';
+        playSound('pop');
+        renderOnboardingPresetGrid();
+      });
+    });
+
+    const handleOnboardingPhotoUpload = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const dataUrl = await processUploadedAvatarFile(file);
+        selectedOnboardingAvatar = dataUrl;
+        const previewImg = document.getElementById('onboardingAvatarPreview');
+        if (previewImg) previewImg.src = dataUrl;
+        renderOnboardingPresetGrid();
+        playSound('pop');
+        showToast('Foto profil berhasil dipilih 📸');
+      } catch (err) {
+        showToast('Gagal memuat foto, pilih gambar lain', '⚠️');
+      }
+    };
+
+    document.getElementById('onboardingPhotoInput')?.addEventListener('change', handleOnboardingPhotoUpload);
+    document.getElementById('onboardingPhotoInputBtn')?.addEventListener('change', handleOnboardingPhotoUpload);
+
+    document.getElementById('onboardingForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('onboardingNameInput').value.trim();
+      const major = document.getElementById('onboardingMajorInput').value.trim();
+      const campus = document.getElementById('onboardingCampusInput').value.trim();
+
+      if (!name || !major || !campus) {
+        showToast('Mohon lengkapi Nama, Jurusan, dan Nama Kampus ✨', '⚠️');
+        return;
+      }
+
+      appData.profile.onboarded = true;
+      appData.profile.name = name;
+      appData.profile.major = major;
+      appData.profile.campus = campus;
+      appData.profile.avatarUrl = selectedOnboardingAvatar || PRESET_AVATARS[0].url;
+
+      // Also personalize workspace slug if still default
+      if (currentSpaceId === 'ruang-kuliah') {
+        const cleanSlug = `${name}-${campus}`
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 36);
+        if (cleanSlug) currentSpaceId = cleanSlug;
+      }
+
+      document.getElementById('onboardingOverlay')?.classList.add('hidden');
+      playSound('success');
+      triggerConfetti();
+      saveWorkspace();
+      renderAll();
+      showToast(`Selamat datang, ${name}! Ruang nugasmu siap digunakan 🎉`, '✨');
+    });
+
+    // View Navigation
     document.querySelectorAll('[data-target-view]').forEach((btn) => {
       btn.addEventListener('click', () => {
         switchView(btn.getAttribute('data-target-view'));
@@ -1644,7 +1875,7 @@
       });
     });
 
-    // Peeking Stacked Folder Tabs (Pink, Blue, Lavender)
+    // Peeking Stacked Folder Tabs
     document.querySelectorAll('.peeking-layer').forEach((layer) => {
       layer.addEventListener('click', () => {
         currentStackFilter = layer.getAttribute('data-stack-filter');
@@ -1653,16 +1884,13 @@
       });
     });
 
-    const cycleStackBtn = document.getElementById('cycleStackTabBtn');
-    if (cycleStackBtn) {
-      cycleStackBtn.addEventListener('click', () => {
-        const order = ['priority', 'upcoming', 'pinned-notes'];
-        const nextIdx = (order.indexOf(currentStackFilter) + 1) % order.length;
-        currentStackFilter = order[nextIdx];
-        playSound('pop');
-        renderSageStackedCard();
-      });
-    }
+    document.getElementById('cycleStackTabBtn')?.addEventListener('click', () => {
+      const order = ['priority', 'upcoming', 'pinned-notes'];
+      const nextIdx = (order.indexOf(currentStackFilter) + 1) % order.length;
+      currentStackFilter = order[nextIdx];
+      playSound('pop');
+      renderSageStackedCard();
+    });
 
     // Theme Vibe Selector
     document.querySelectorAll('#vibeSelector .seg-btn').forEach((btn) => {
@@ -1675,25 +1903,19 @@
     });
 
     // Phone Frame Preview Mode Toggle
-    const frameBtn = document.getElementById('toggleFrameModeBtn');
-    if (frameBtn) {
-      frameBtn.addEventListener('click', () => {
-        document.body.classList.toggle('phone-frame-mode');
-        playSound('pop');
-        const isPhone = document.body.classList.contains('phone-frame-mode');
-        showToast(isPhone ? 'Mode Preview Frame HP Aktif 📱' : 'Mode Workspace Layar Penuh Aktif 💻', '✨');
-      });
-    }
+    document.getElementById('toggleFrameModeBtn')?.addEventListener('click', () => {
+      document.body.classList.toggle('phone-frame-mode');
+      playSound('pop');
+      const isPhone = document.body.classList.contains('phone-frame-mode');
+      showToast(isPhone ? 'Mode Preview Frame HP Aktif 📱' : 'Mode Workspace Layar Penuh Aktif 💻', '✨');
+    });
 
     // Sound Toggle
-    const soundBtn = document.getElementById('toggleSoundBtn');
-    if (soundBtn) {
-      soundBtn.addEventListener('click', () => {
-        soundEnabled = !soundEnabled;
-        document.getElementById('soundIcon').textContent = soundEnabled ? '🔊' : '🔇';
-        showToast(soundEnabled ? 'Efek suara diaktifkan 🔊' : 'Efek suara dibisukan 🔇');
-      });
-    }
+    document.getElementById('toggleSoundBtn')?.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      document.getElementById('soundIcon').textContent = soundEnabled ? '🔊' : '🔇';
+      showToast(soundEnabled ? 'Efek suara diaktifkan 🔊' : 'Efek suara dibisukan 🔇');
+    });
 
     // Center Dock FAB + Menu
     const fabBtn = document.getElementById('dockFabButton');
@@ -1728,7 +1950,7 @@
       copyShareableLinkToClipboard();
     });
 
-    // Hero & Quick Buttons
+    // Hero & Quick Action Buttons
     document.getElementById('openNewTaskModalHeroBtn')?.addEventListener('click', () => openTaskModal());
     document.getElementById('openNewTaskModalStickerBtn')?.addEventListener('click', () => openTaskModal());
     document.getElementById('addTaskMainBtn')?.addEventListener('click', () => openTaskModal());
@@ -1737,6 +1959,7 @@
     document.getElementById('quickAddNoteHeroBtn')?.addEventListener('click', () => createNewNote());
     document.getElementById('openQuickNotesBtn')?.addEventListener('click', () => switchView('view-notes'));
     document.getElementById('createNewNoteBtn')?.addEventListener('click', () => createNewNote());
+    document.getElementById('createFirstNoteEmptyBtn')?.addEventListener('click', () => createNewNote());
 
     // Task Filters
     document.querySelectorAll('#taskStatusFilterGroup .filter-chip').forEach((chip) => {
@@ -1778,10 +2001,12 @@
       const title = document.getElementById('taskTitleInput').value.trim();
       if (!title) return;
 
+      const courseName = ensureCourseRegistered(document.getElementById('taskCourseInput').value);
+
       const payload = {
         id: id || ('task-' + Date.now()),
         title,
-        course: document.getElementById('taskCourseInput').value,
+        course: courseName,
         category: document.getElementById('taskCategoryInput').value,
         dueDate: document.getElementById('taskDueDateInput').value,
         dueTime: document.getElementById('taskDueTimeInput').value || '23:59',
@@ -1851,23 +2076,23 @@
       const note = appData.notes.find((n) => n.id === activeNoteId);
       if (!note) return;
       note.title = document.getElementById('activeNoteTitleInput').value;
-      note.course = document.getElementById('activeNoteCourseSelect').value;
+      const rawCourse = document.getElementById('activeNoteCourseSelect').value.trim();
+      note.course = rawCourse ? ensureCourseRegistered(rawCourse) : '';
       note.date = document.getElementById('activeNoteDateInput').value;
       note.tag = document.getElementById('activeNoteTagInput').value;
       note.content = document.getElementById('activeNoteBodyEditor').innerHTML;
       note.updatedAt = new Date().toISOString();
 
       updateNoteWordCount();
-      saveWorkspace({ silent: true });
+      saveWorkspace();
 
-      // Refresh sidebar list snippet without stealing focus
       const activeCardTitle = document.querySelector(`.note-list-card.active-note .note-card-title`);
       const activeCardSnippet = document.querySelector(`.note-list-card.active-note .note-card-snippet`);
       if (activeCardTitle) activeCardTitle.textContent = note.title || 'Tanpa Judul';
-      if (activeCardSnippet) activeCardSnippet.textContent = stripHtml(note.content).slice(0, 95);
+      if (activeCardSnippet) activeCardSnippet.textContent = stripHtml(note.content).slice(0, 95) || 'Catatan masih kosong...';
     };
 
-    ['activeNoteTitleInput', 'activeNoteTagInput', 'activeNoteBodyEditor'].forEach((id) => {
+    ['activeNoteTitleInput', 'activeNoteTagInput', 'activeNoteBodyEditor', 'activeNoteCourseSelect'].forEach((id) => {
       document.getElementById(id)?.addEventListener('input', saveActiveNoteChanges);
     });
     ['activeNoteCourseSelect', 'activeNoteDateInput'].forEach((id) => {
@@ -1901,10 +2126,6 @@
     });
 
     document.getElementById('deleteActiveNoteBtn')?.addEventListener('click', () => {
-      if (appData.notes.length <= 1) {
-        showToast('Minimal harus ada 1 catatan kuliah tersimpan', '⚠️');
-        return;
-      }
       appData.notes = appData.notes.filter((n) => n.id !== activeNoteId);
       activeNoteId = appData.notes[0]?.id || null;
       playSound('pop');
@@ -1915,7 +2136,7 @@
 
     document.getElementById('shareSingleNoteLinkBtn')?.addEventListener('click', copyShareableLinkToClipboard);
 
-    // Rich Formatting Toolbar Buttons
+    // Rich Formatting Toolbar
     document.querySelectorAll('.editor-formatting-toolbar [data-cmd]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const cmd = btn.getAttribute('data-cmd');
@@ -1945,17 +2166,16 @@
         } else if (type === 'h3') {
           document.execCommand('formatBlock', false, 'H3');
         } else if (type === 'checklist') {
-          document.execCommand('insertHTML', false, `<div>☑️ <b>Item langkah tugas...</b></div>`);
+          document.execCommand('insertHTML', false, `<div>☑️ <b>Item langkah...</b></div>`);
         } else if (type === 'callout') {
-          document.execCommand('insertHTML', false, `<div class="note-callout-box">💡 <b>Poin Penting:</b> Tulis ringkasan rumus atau konsep utama di sini...</div><p><br></p>`);
+          document.execCommand('insertHTML', false, `<div class="note-callout-box">💡 <b>Poin Penting:</b> </div><p><br></p>`);
         } else if (type === 'code') {
-          document.execCommand('insertHTML', false, `<pre class="note-code-block">// Tulis kode program di sini\nconsole.log("Semangat Nugas!");</pre><p><br></p>`);
+          document.execCommand('insertHTML', false, `<pre class="note-code-block">// Kode program\n</pre><p><br></p>`);
         }
         saveActiveNoteChanges();
       });
     });
 
-    // Notes Search Input
     document.getElementById('notesSearchInput')?.addEventListener('input', (e) => {
       currentNoteSearchQuery = e.target.value;
       renderNotesStudio();
@@ -1991,7 +2211,6 @@
       showToast(`Beralih ke Ruang Kerja #${currentSpaceId} ☁️`);
     });
 
-    // Export & Import JSON Backup
     document.getElementById('exportJsonBtn')?.addEventListener('click', () => {
       const blob = new Blob([JSON.stringify(appData, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
@@ -2010,6 +2229,7 @@
           const imported = JSON.parse(String(reader.result));
           if (imported && Array.isArray(imported.tasks) && Array.isArray(imported.notes)) {
             appData = imported;
+            appData.version = 2;
             saveWorkspace();
             renderAll();
             document.getElementById('syncModalBackdrop')?.classList.add('hidden');
@@ -2022,13 +2242,17 @@
       reader.readAsText(file);
     });
 
+    // Clear all notes & tasks button
     document.getElementById('resetDemoDataBtn')?.addEventListener('click', () => {
-      appData = createDefaultWorkspaceData();
-      activeNoteId = appData.notes[0]?.id || null;
+      appData.tasks = [];
+      appData.notes = [];
+      appData.courses = [];
+      appData.profile.focusMinutesToday = 0;
+      activeNoteId = null;
       saveWorkspace();
       renderAll();
       document.getElementById('syncModalBackdrop')?.classList.add('hidden');
-      showToast('Contoh data awal berhasil dimuat ulang ✨');
+      showToast('Semua catatan dan tugas telah dikosongkan 🗑️');
     });
 
     // Pomodoro Modal Controls
@@ -2071,6 +2295,11 @@
     const openProfileModal = () => {
       document.getElementById('profileNameInput').value = appData.profile.name || '';
       document.getElementById('profileMajorInput').value = appData.profile.major || '';
+      document.getElementById('profileCampusInput').value = appData.profile.campus || '';
+      selectedProfileModalAvatar = appData.profile.avatarUrl || PRESET_AVATARS[0].url;
+      const prevEl = document.getElementById('profileModalAvatarPreview');
+      if (prevEl) prevEl.src = selectedProfileModalAvatar;
+      renderProfileModalPresetGrid();
       renderCoursesManagerList();
       document.getElementById('profileModalBackdrop')?.classList.remove('hidden');
       playSound('pop');
@@ -2079,9 +2308,29 @@
     document.getElementById('editProfileBtn')?.addEventListener('click', openProfileModal);
     document.getElementById('quickManageCoursesBtn')?.addEventListener('click', openProfileModal);
 
+    document.getElementById('profileModalPhotoInput')?.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const dataUrl = await processUploadedAvatarFile(file);
+        selectedProfileModalAvatar = dataUrl;
+        const prevEl = document.getElementById('profileModalAvatarPreview');
+        if (prevEl) prevEl.src = dataUrl;
+        renderProfileModalPresetGrid();
+        playSound('pop');
+        showToast('Foto profil baru dipilih 📸');
+      } catch (err) {
+        showToast('Gagal memuat foto', '⚠️');
+      }
+    });
+
     function renderCoursesManagerList() {
       const list = document.getElementById('coursesManageList');
       if (!list) return;
+      if (appData.courses.length === 0) {
+        list.innerHTML = `<div style="font-size:0.78rem; color:var(--text-muted); padding: 4px 0;">Belum ada mata kuliah ditambahkan.</div>`;
+        return;
+      }
       list.innerHTML = appData.courses.map((c, idx) => `
         <div class="subtask-builder-item">
           <span>📚 ${escapeHtml(c)}</span>
@@ -2092,7 +2341,6 @@
       list.querySelectorAll('[data-del-course]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const idx = Number(btn.getAttribute('data-del-course'));
-          if (appData.courses.length <= 1) return;
           appData.courses.splice(idx, 1);
           renderCoursesManagerList();
         });
@@ -2102,18 +2350,31 @@
     document.getElementById('addNewCourseBtn')?.addEventListener('click', () => {
       const inp = document.getElementById('newCourseNameInput');
       if (!inp || !inp.value.trim()) return;
-      appData.courses.push(inp.value.trim());
+      ensureCourseRegistered(inp.value.trim());
       inp.value = '';
       renderCoursesManagerList();
     });
 
     document.getElementById('saveProfileBtn')?.addEventListener('click', () => {
-      appData.profile.name = document.getElementById('profileNameInput').value.trim() || 'Mahasiswa';
-      appData.profile.major = document.getElementById('profileMajorInput').value.trim() || 'Semester Aktif';
+      const name = document.getElementById('profileNameInput').value.trim();
+      const major = document.getElementById('profileMajorInput').value.trim();
+      const campus = document.getElementById('profileCampusInput').value.trim();
+
+      if (!name || !major || !campus) {
+        showToast('Nama, Jurusan, dan Kampus wajib diisi!', '⚠️');
+        return;
+      }
+
+      appData.profile.onboarded = true;
+      appData.profile.name = name;
+      appData.profile.major = major;
+      appData.profile.campus = campus;
+      appData.profile.avatarUrl = selectedProfileModalAvatar || PRESET_AVATARS[0].url;
+
       document.getElementById('profileModalBackdrop')?.classList.add('hidden');
       saveWorkspace();
       renderAll();
-      showToast('Profil & Mata Kuliah berhasil disimpan! 🎓');
+      showToast('Profil, Foto & Mata Kuliah berhasil disimpan! 🎓');
     });
 
     // Global Search Modal (Ctrl+K)
@@ -2147,7 +2408,6 @@
       renderGlobalSearchResults(e.target.value);
     });
 
-    // Close Modal Buttons & Backdrop Click
     document.querySelectorAll('[data-close-modal]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const target = btn.getAttribute('data-close-modal');
@@ -2168,14 +2428,19 @@
     const q = (query || '').toLowerCase().trim();
 
     const matchedTasks = appData.tasks.filter((t) =>
-      !q || t.title.toLowerCase().includes(q) || t.course.toLowerCase().includes(q)
+      !q || t.title.toLowerCase().includes(q) || (t.course || '').toLowerCase().includes(q)
     ).slice(0, 5);
 
     const matchedNotes = appData.notes.filter((n) =>
-      !q || n.title.toLowerCase().includes(q) || n.course.toLowerCase().includes(q) || stripHtml(n.content).toLowerCase().includes(q)
+      !q || (n.title || '').toLowerCase().includes(q) || (n.course || '').toLowerCase().includes(q) || stripHtml(n.content).toLowerCase().includes(q)
     ).slice(0, 5);
 
     container.innerHTML = '';
+
+    if (matchedTasks.length === 0 && matchedNotes.length === 0) {
+      container.innerHTML = `<div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.84rem;">Belum ada tugas atau catatan yang cocok.</div>`;
+      return;
+    }
 
     matchedTasks.forEach((t) => {
       const row = document.createElement('div');
@@ -2205,7 +2470,7 @@
         <div class="sage-row-left">
           <span class="sage-row-icon">📝</span>
           <div class="sage-row-text">
-            <span class="sage-row-title">${escapeHtml(n.title)}</span>
+            <span class="sage-row-title">${escapeHtml(n.title || 'Catatan Tanpa Judul')}</span>
             <span class="sage-row-meta">Catatan • ${escapeHtml(n.course)}</span>
           </div>
         </div>
@@ -2221,7 +2486,6 @@
     });
   }
 
-  // Initialize App on DOMContentLoaded
   document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
     initWorkspaceLoad();

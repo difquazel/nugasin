@@ -1,12 +1,22 @@
 {
   "name": "nugasin-campus-workspace",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Website Nugas Harian & Catatan Kampus Interaktif dengan Kalender & Cloud Link Sync — Made by Maurence",
   "author": "Maurence",
   "scripts": {
     "start": "node local-server.js",
     "dev": "node local-server.js",
+    "build": "node scripts/build.js",
+    "check": "node scripts/check.js",
+    "test": "node --test tests/*.test.js",
+    "test:rules": "node --test tests/firestore.rules.emulator.js",
     "deploy": "npx vercel --prod"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
   },
   "keywords": [
     "campus",

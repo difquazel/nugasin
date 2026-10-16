@@ -1,0 +1,319 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================================
+    // 1. COMMON AUTHENTICATION & TYPE VALIDATION HELPERS
+    // =========================================================================
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid is string;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidString(val, maxLen) {
+      return val is string && val.size() <= maxLen;
+    }
+
+    function isNonEmptyString(val, maxLen) {
+      return val is string && val.size() >= 1 && val.size() <= maxLen;
+    }
+
+    function isNonNegativeInt(val) {
+      return val is int && val >= 0;
+    }
+
+    function isNonNegativeNumber(val, maxVal) {
+      return (val is int || val is float) && val >= 0 && val <= maxVal;
+    }
+
+    // =========================================================================
+    // 2. THEME OWNERSHIP VERIFICATION
+    //    - Existing default/candy/matcha and older base vibes remain free.
+    //    - Premium themes ('christmas', 'nature', 'antarctica') cost 3,000 XP and
+    //      must exist in the server-managed `economy/wallet.purchasedThemes`.
+    // =========================================================================
+    function isFreeTheme(themeId) {
+      return themeId in ['default', 'candy', 'matcha', 'pastel-bento', 'butter-pop', 'pink-flow'];
+    }
+
+    function isPurchasedTheme(userId, themeId) {
+      let walletPath = /databases/$(database)/documents/users/$(userId)/economy/wallet;
+      return exists(walletPath)
+        && themeId in get(walletPath).data.get('purchasedThemes', []);
+    }
+
+    function canEquipTheme(userId, themeId) {
+      return isValidString(themeId, 40)
+        && (isFreeTheme(themeId) || isPurchasedTheme(userId, themeId));
+    }
+
+    // =========================================================================
+    // 3. SCHEMA VALIDATORS FOR USER-WRITABLE DOCUMENTS
+    // =========================================================================
+    function isValidPreferencesPayload(userId, data) {
+      return data.keys().hasAll(['profile', 'courses', 'updatedAt', 'updatedAtMs', 'lastModifiedBy'])
+        && data.keys().hasOnly(['profile', 'courses', 'updatedAt', 'updatedAtMs', 'lastModifiedBy'])
+        // Explicitly forbid any XP, reward, or purchase fields inside preferences
+        && !data.keys().hasAny([
+          'xp', 'xpBalance', 'lifetimeXpEarned', 'totalXpSpent',
+          'purchasedThemes', 'unlockedThemes', 'rewards', 'rewardHistory', 'xpTransactions'
+        ])
+        && data.profile is map
+        && data.profile.keys().hasAll([
+          'onboarded', 'name', 'major', 'campus', 'avatarUrl',
+          'focusMinutesToday', 'streakDays', 'themeVibe'
+        ])
+        && data.profile.keys().hasOnly([
+          'onboarded', 'name', 'major', 'campus', 'avatarUrl',
+          'focusMinutesToday', 'streakDays', 'themeVibe',
+          'activeTheme', 'colorMode', 'animationsEnabled'
+        ])
+        && data.profile.onboarded is bool
+        && isValidString(data.profile.name, 120)
+        && isValidString(data.profile.major, 120)
+        && isValidString(data.profile.campus, 160)
+        && isValidString(data.profile.avatarUrl, 350000)
+        && isNonNegativeNumber(data.profile.focusMinutesToday, 1440)
+        && isNonNegativeNumber(data.profile.streakDays, 36500)
+        && canEquipTheme(userId, data.profile.themeVibe)
+        && (!('activeTheme' in data.profile) || canEquipTheme(userId, data.profile.activeTheme))
+        && (!('colorMode' in data.profile) || data.profile.colorMode in ['light', 'dark', 'system'])
+        && (!('animationsEnabled' in data.profile) || data.profile.animationsEnabled is bool)
+        && data.courses is list
+        && data.courses.size() <= 60
+        && isNonEmptyString(data.updatedAt, 64)
+        && isNonNegativeInt(data.updatedAtMs)
+        && isNonEmptyString(data.lastModifiedBy, 64);
+    }
+
+    function isValidTaskPayload(taskId, data) {
+      return data.keys().hasAll([
+          'id', 'title', 'course', 'category', 'dueDate', 'dueTime',
+          'priority', 'status', 'description', 'link', 'subtasks',
+          'createdAt', 'updatedAt', 'updatedAtMs', 'lastModifiedBy'
+        ])
+        && data.keys().hasOnly([
+          'id', 'title', 'course', 'category', 'dueDate', 'dueTime',
+          'priority', 'status', 'description', 'link', 'subtasks',
+          'createdAt', 'updatedAt', 'updatedAtMs', 'completedAtMs',
+          'lastModifiedBy',
+          // Server-stamped fields (read-only/immutable for client, see anti-tamper rules below)
+          'xpRewarded', 'rewardedWeekKey', 'rewardClaimedAtMs'
+        ])
+        && data.id == taskId
+        && isNonEmptyString(data.id, 128)
+        && isNonEmptyString(data.title, 500)
+        && isValidString(data.course, 120)
+        && isValidString(data.category, 80)
+        && isNonEmptyString(data.dueDate, 20)
+        && isValidString(data.dueTime, 20)
+        && data.priority in ['low', 'medium', 'high']
+        && data.status in ['pending', 'in-progress', 'completed']
+        && isValidString(data.description, 5000)
+        && isValidString(data.link, 2048)
+        && data.subtasks is list
+        && data.subtasks.size() <= 100
+        && isNonEmptyString(data.createdAt, 64)
+        && isNonEmptyString(data.updatedAt, 64)
+        && isNonNegativeInt(data.updatedAtMs)
+        && (!('completedAtMs' in data) || data.completedAtMs == null || isNonNegativeInt(data.completedAtMs))
+        && isNonEmptyString(data.lastModifiedBy, 64);
+    }
+
+    // Prevents users from forging or resetting task reward metadata
+    function isTaskRewardMetadataUntouchedOnCreate(data) {
+      return !data.keys().hasAny(['xpRewarded', 'rewardedWeekKey', 'rewardClaimedAtMs']);
+    }
+
+    function isTaskRewardMetadataUntouchedOnUpdate(newData, oldData) {
+      let sameRewardFlag = newData.get('xpRewarded', null) == oldData.get('xpRewarded', null);
+      let sameWeekKey = newData.get('rewardedWeekKey', null) == oldData.get('rewardedWeekKey', null);
+      let sameClaimTime = newData.get('rewardClaimedAtMs', null) == oldData.get('rewardClaimedAtMs', null);
+      let sameCreatedAt = newData.createdAt == oldData.createdAt;
+      // Tasks remain editable and can be reopened. Permanent server-only receipts,
+      // rather than mutable task state or timestamps, prevent repeat XP credit.
+      return sameRewardFlag && sameWeekKey && sameClaimTime && sameCreatedAt;
+    }
+
+    function isValidNotePayload(noteId, data) {
+      return data.keys().hasAll([
+          'id', 'title', 'course', 'date', 'tag', 'color',
+          'pinned', 'content', 'createdAt', 'updatedAt',
+          'updatedAtMs', 'lastModifiedBy'
+        ])
+        && data.keys().hasOnly([
+          'id', 'title', 'course', 'date', 'tag', 'color',
+          'pinned', 'content', 'createdAt', 'updatedAt',
+          'updatedAtMs', 'lastModifiedBy'
+        ])
+        && data.id == noteId
+        && isNonEmptyString(data.id, 128)
+        && isValidString(data.title, 300)
+        && isValidString(data.course, 120)
+        && isNonEmptyString(data.date, 20)
+        && isValidString(data.tag, 120)
+        && data.color in ['cream', 'yellow', 'pink', 'lavender', 'blue', 'sage', 'mint', 'peach']
+        && data.pinned is bool
+        && isValidString(data.content, 500000)
+        && isNonEmptyString(data.createdAt, 64)
+        && isNonEmptyString(data.updatedAt, 64)
+        && isNonNegativeInt(data.updatedAtMs)
+        && isNonEmptyString(data.lastModifiedBy, 64);
+    }
+
+    function isValidSchedulePayload(scheduleId, data) {
+      return data.keys().hasAll(['id', 'title', 'date', 'updatedAt', 'updatedAtMs'])
+        && data.keys().hasOnly([
+          'id', 'title', 'course', 'date', 'startTime', 'endTime',
+          'location', 'notes', 'color', 'createdAt', 'updatedAt',
+          'updatedAtMs', 'lastModifiedBy'
+        ])
+        && data.id == scheduleId
+        && isNonEmptyString(data.id, 128)
+        && isNonEmptyString(data.title, 300)
+        && isNonEmptyString(data.date, 20)
+        && (!('course' in data) || isValidString(data.course, 120))
+        && (!('startTime' in data) || isValidString(data.startTime, 20))
+        && (!('endTime' in data) || isValidString(data.endTime, 20))
+        && (!('location' in data) || isValidString(data.location, 200))
+        && (!('notes' in data) || isValidString(data.notes, 2000))
+        && (!('color' in data) || isValidString(data.color, 30))
+        && (!('createdAt' in data) || isValidString(data.createdAt, 64))
+        && isNonEmptyString(data.updatedAt, 64)
+        && isNonNegativeInt(data.updatedAtMs)
+        && (!('lastModifiedBy' in data) || isValidString(data.lastModifiedBy, 64));
+    }
+
+    // =========================================================================
+    // 4. USER DATA HIERARCHY (/users/{userId})
+    // =========================================================================
+    match /users/{userId} {
+      // Root document is read-only for the owner; clients cannot write arbitrary fields here
+      allow get: if isOwner(userId);
+      allow list, create, update, delete: if false;
+
+      // -----------------------------------------------------------------------
+      // A. USER SETTINGS & PREFERENCES (Only 'preferences' doc is client-writable)
+      // -----------------------------------------------------------------------
+      match /settings/{settingId} {
+        allow get, list: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && settingId == 'preferences'
+          && isValidPreferencesPayload(userId, request.resource.data);
+        allow delete: if false;
+      }
+
+      // -----------------------------------------------------------------------
+      // B. USER TASKS (Strict Schema + Anti-Reward-Tampering Protection)
+      // -----------------------------------------------------------------------
+      match /tasks/{taskId} {
+        allow get, list: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && isValidTaskPayload(taskId, request.resource.data)
+          && isTaskRewardMetadataUntouchedOnCreate(request.resource.data);
+
+        allow update: if isOwner(userId)
+          && isValidTaskPayload(taskId, request.resource.data)
+          && isTaskRewardMetadataUntouchedOnUpdate(request.resource.data, resource.data);
+
+        // New tasks can be deleted freely; their immutable receipts survive.
+        // Legacy rewarded tasks first need a receipt from /api/complete-task so
+        // deleting their old inline stamp cannot enable recycling the same ID.
+        allow delete: if isOwner(userId)
+          && ((resource.data.get('xpRewarded', false) != true
+              && resource.data.get('rewardedWeekKey', null) == null)
+            || exists(/databases/$(database)/documents/users/$(userId)/taskCompletions/$(taskId)));
+      }
+
+      // -----------------------------------------------------------------------
+      // C. USER NOTES (Strict Schema Validation)
+      // -----------------------------------------------------------------------
+      match /notes/{noteId} {
+        allow get, list: if isOwner(userId);
+
+        allow create: if isOwner(userId)
+          && isValidNotePayload(noteId, request.resource.data);
+
+        allow update: if isOwner(userId)
+          && isValidNotePayload(noteId, request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt;
+
+        allow delete: if isOwner(userId);
+      }
+
+      // -----------------------------------------------------------------------
+      // D. USER SCHEDULES (Strict Schema Validation)
+      // -----------------------------------------------------------------------
+      match /schedules/{scheduleId} {
+        allow get, list: if isOwner(userId);
+
+        allow create, update: if isOwner(userId)
+          && isValidSchedulePayload(scheduleId, request.resource.data);
+
+        allow delete: if isOwner(userId);
+      }
+
+      // -----------------------------------------------------------------------
+      // E. PRIVILEGED ECONOMY WALLET (XP Balance & Purchased Themes)
+      //    READ-ONLY FOR CLIENT — Writable ONLY via Firebase Admin SDK Backend
+      // -----------------------------------------------------------------------
+      match /economy/{docId} {
+        allow get, list: if isOwner(userId);
+        allow create, update, delete: if false;
+      }
+
+      // -----------------------------------------------------------------------
+      // F. WEEKLY REWARD LEDGER (Monday's Jakarta date; old ISO keys stay readable)
+      //    READ-ONLY FOR CLIENT — Writable ONLY via Firebase Admin SDK Backend
+      // -----------------------------------------------------------------------
+      match /rewards/{weekKey} {
+        allow get, list: if isOwner(userId);
+        allow create, update, delete: if false;
+      }
+
+      // Server-verified first completion per stable task ID, kept permanently.
+      // Deleting/reopening a task does not remove or reset its receipt.
+      match /taskCompletions/{taskId} {
+        allow get, list: if isOwner(userId);
+        allow create, update, delete: if false;
+      }
+
+      // Server-maintained weekly progress; browser dates and counts are never
+      // authoritative. The fifth unique receipt and reward share one transaction.
+      match /weeks/{weekKey} {
+        allow get, list: if isOwner(userId);
+        allow create, update, delete: if false;
+      }
+
+      // -----------------------------------------------------------------------
+      // G. THEME PURCHASE AUDIT LOG (3,000 XP Atomic Transactions)
+      //    READ-ONLY FOR CLIENT — Writable ONLY via Firebase Admin SDK Backend
+      // -----------------------------------------------------------------------
+      match /purchases/{purchaseId} {
+        allow get, list: if isOwner(userId);
+        allow create, update, delete: if false;
+      }
+
+      // -----------------------------------------------------------------------
+      // H. IMMUTABLE XP TRANSACTION HISTORY (+500 XP / -3,000 XP Ledger)
+      //    READ-ONLY FOR CLIENT — Writable ONLY via Firebase Admin SDK Backend
+      // -----------------------------------------------------------------------
+      match /xpTransactions/{txId} {
+        allow get, list: if isOwner(userId);
+        allow create, update, delete: if false;
+      }
+    }
+
+    // =========================================================================
+    // 5. DEFAULT DENY ALL OTHER PATHS
+    // =========================================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

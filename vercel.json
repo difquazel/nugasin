@@ -1,10 +1,26 @@
 {
   "version": 2,
   "framework": null,
-  "buildCommand": "",
-  "outputDirectory": ".",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
+    {
+      "source": "/api/complete-task",
+      "destination": "/api/complete-task.js"
+    },
+    {
+      "source": "/api/firebase-config",
+      "destination": "/api/firebase-config.js"
+    },
+    {
+      "source": "/api/claim-weekly-reward",
+      "destination": "/api/claim-weekly-reward.js"
+    },
+    {
+      "source": "/api/purchase-theme",
+      "destination": "/api/purchase-theme.js"
+    },
     {
       "source": "/api/workspace/:spaceId",
       "destination": "/api/workspace.js?spaceId=:spaceId"

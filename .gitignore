@@ -1,6 +1,13 @@
 node_modules/
+.npm-cache/
+dist/
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+*-debug.log
 .vercel/
 .env
 .env.*
+!.env.example
 data/*.tmp
 .DS_Store

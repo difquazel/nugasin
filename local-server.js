@@ -2,6 +2,24 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+// Load .env file if present for local development
+const ENV_FILE = path.join(__dirname, '.env');
+if (fs.existsSync(ENV_FILE)) {
+  try {
+    const envLines = fs.readFileSync(ENV_FILE, 'utf8').split(/\r?\n/);
+    for (const line of envLines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
+      if (eqIdx > 0) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, '');
+        if (!process.env[key]) process.env[key] = val;
+      }
+    }
+  } catch (e) {}
+}
+
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'workspaces.json');
@@ -81,7 +99,7 @@ const server = http.createServer((req, res) => {
   // CORS headers so link works from any origin or webview
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Client-Id');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Client-Id, Authorization');
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -91,6 +109,21 @@ const server = http.createServer((req, res) => {
 
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
+
+  // Trusted Server-Side Economy Endpoints (Firebase Admin SDK)
+  if (pathname === '/api/complete-task') {
+    const completionHandler = require('./api/complete-task');
+    return completionHandler(req, res);
+  }
+  if (pathname === '/api/claim-weekly-reward') {
+    const claimHandler = require('./api/claim-weekly-reward');
+    return claimHandler(req, res);
+  }
+
+  if (pathname === '/api/purchase-theme') {
+    const purchaseHandler = require('./api/purchase-theme');
+    return purchaseHandler(req, res);
+  }
 
   // Real-time SSE stream endpoint: /api/stream/:spaceId
   if (pathname.startsWith('/api/stream/') && req.method === 'GET') {
@@ -178,6 +211,28 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  // Firebase public client configuration endpoint
+  if (pathname === '/api/firebase-config') {
+    const env = process.env || {};
+    const apiKey = env.FIREBASE_API_KEY || env.NEXT_PUBLIC_FIREBASE_API_KEY || env.VITE_FIREBASE_API_KEY || '';
+    const authDomain = env.FIREBASE_AUTH_DOMAIN || env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || env.VITE_FIREBASE_AUTH_DOMAIN || '';
+    const projectId = env.FIREBASE_PROJECT_ID || env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || env.VITE_FIREBASE_PROJECT_ID || '';
+    const storageBucket = env.FIREBASE_STORAGE_BUCKET || env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || env.VITE_FIREBASE_STORAGE_BUCKET || '';
+    const messagingSenderId = env.FIREBASE_MESSAGING_SENDER_ID || env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || env.VITE_FIREBASE_MESSAGING_SENDER_ID || '';
+    const appId = env.FIREBASE_APP_ID || env.NEXT_PUBLIC_FIREBASE_APP_ID || env.VITE_FIREBASE_APP_ID || '';
+    const configured = Boolean(apiKey && authDomain && projectId && appId);
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({
+      ok: true,
+      configured,
+      config: configured
+        ? { apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId }
+        : null
+    }));
+    return;
+  }
+
   // Health / status check
   if (pathname === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -191,31 +246,32 @@ const server = http.createServer((req, res) => {
   }
 
   // Static files
-  let safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
+  let safePath;
+  try { safePath = decodeURIComponent(pathname); }
+  catch (error) { res.writeHead(400); res.end('Invalid path'); return; }
   if (safePath === '/' || safePath === '\\' || safePath === '') {
     safePath = '/index.html';
   }
 
-  const filePath = path.join(__dirname, safePath);
-  if (!filePath.startsWith(__dirname)) {
-    res.writeHead(403);
-    res.end('Forbidden');
+  // Serve only browser assets. In particular, never expose .env, data, or Admin code.
+  const relativeAsset = safePath.replace(/^[\/\\]+/, '').replace(/\\/g, '/');
+  const isPublicFile = ['index.html', 'client.js', 'styles.css'].includes(relativeAsset);
+  const isPublicAsset = /^(assets|public)\/[a-zA-Z0-9_./-]+\.(svg|png|jpe?g|webp|avif|ico|woff2?|css|js)$/.test(relativeAsset)
+    && !relativeAsset.split('/').some((part) => part.startsWith('.'));
+  if (!isPublicFile && !isPublicAsset) {
+    res.writeHead(404);
+    res.end('Not found');
     return;
+  }
+  const filePath = path.resolve(__dirname, relativeAsset);
+  if (!filePath.startsWith(__dirname + path.sep)) {
+    res.writeHead(403); res.end('Forbidden'); return;
   }
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
-      // Fallback to index.html for SPA routing
-      const indexFile = path.join(__dirname, 'index.html');
-      fs.readFile(indexFile, (readErr, content) => {
-        if (readErr) {
-          res.writeHead(404);
-          res.end('Not found');
-          return;
-        }
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(content);
-      });
+      res.writeHead(404);
+      res.end('Not found');
       return;
     }
 

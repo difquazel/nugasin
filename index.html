@@ -1,10 +1,42 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-color-mode="light" data-active-theme="default" data-animations="on">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#F7DF83" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#F7DF83" id="metaThemeColor" />
   <title>Nugasin ✨ — Catatan Kampus, Tugas Harian & Kalender Online | Made by Maurence</title>
+  <!-- Prevent Appearance Flashing (FOUC) for Dark Mode & Custom Themes before CSS/Body paints -->
+  <script>
+    (function () {
+      var cfg = {};
+      try {
+        var raw = localStorage.getItem('nugasin_appearance_cache');
+        cfg = raw ? JSON.parse(raw) || {} : {};
+      } catch (e) {}
+      try {
+        var prefMode = ['light', 'dark', 'system'].indexOf(cfg.colorMode) >= 0 ? cfg.colorMode : 'system';
+        var resolvedMode = prefMode;
+        if (prefMode === 'system') {
+          resolvedMode = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        var activeTheme = ['default', 'christmas', 'nature', 'antarctica'].indexOf(cfg.activeTheme) >= 0 ? cfg.activeTheme : 'default';
+        var animOn = cfg.animationsEnabled !== false;
+        var root = document.documentElement;
+        root.setAttribute('data-color-mode-pref', prefMode);
+        root.setAttribute('data-color-mode', resolvedMode === 'dark' ? 'dark' : 'light');
+        root.setAttribute('data-active-theme', activeTheme);
+        root.setAttribute('data-animations', animOn ? 'on' : 'off');
+        root.style.colorScheme = resolvedMode === 'dark' ? 'dark' : 'light';
+        root.setAttribute('data-appearance-boot', '');
+        document.getElementById('metaThemeColor').content = resolvedMode === 'dark' ? '#0F1117' : '#F7DF83';
+        document.addEventListener('DOMContentLoaded', function () {
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () { root.removeAttribute('data-appearance-boot'); });
+          });
+        }, { once: true });
+      } catch (e) {}
+    })();
+  </script>
   <!-- Google Fonts: Plus Jakarta Sans + Instrument Serif (for the expressive italic typography in reference) + JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +53,10 @@
     <div class="ambient-blob blob-mint"></div>
   </div>
 
-  <!-- Top Utility Bar (Cloud Link Sync Status, Layout Toggle, Theme Switcher, Sound Toggle) -->
+  <!-- Non-Intrusive Decorative Particle Overlay (Snowfall / Leaves for Active Theme) -->
+  <div class="theme-particles-layer" id="themeParticlesLayer" aria-hidden="true"></div>
+
+  <!-- Top Utility Bar (Google Auth, Cloud Sync Status, XP Balance, Theme Shop, Dark Mode Toggle, Sound Toggle) -->
   <header class="top-cloud-bar">
     <div class="cloud-bar-left">
       <div class="brand-logo" id="brandLogoBtn" title="Nugasin Campus Workspace — Made by Maurence">
@@ -36,27 +71,77 @@
         <span>Made by <strong>Maurence</strong></span>
       </span>
 
-      <!-- Live Online Sync Indicator Pill -->
-      <button class="sync-status-pill" id="openSyncModalBtn" title="Klik untuk kelola Link Online & Cloud Sync">
+      <!-- Accurate Synchronization Status Indicator Pill -->
+      <button class="sync-status-pill" id="openSyncModalBtn" title="Status Sinkronisasi Cloud & Backup">
         <span class="sync-dot" id="syncDot"></span>
-        <span class="sync-label" id="syncStatusText">Tersimpan Online</span>
-        <span class="sync-space-tag" id="currentSpaceBadge">#kampus-utama</span>
-        <svg class="icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        <span class="sync-label" id="syncStatusText">Checking Auth...</span>
+        <span class="sync-space-tag" id="currentSpaceBadge">Local</span>
       </button>
     </div>
 
     <div class="cloud-bar-right">
-      <!-- Copy Instant Cloud Link Button -->
-      <button class="pill-action-btn copy-link-quick-btn" id="quickCopyLinkBtn" title="Salin Link Catatan Online (Buka di mana saja tidak hilang)">
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        <span>Salin Link Catatan</span>
+      <!-- XP Balance & Theme Shop Trigger Pill -->
+      <button type="button" class="xp-shop-pill-btn" id="openThemeShopBtn" title="Buka Theme Shop & XP Wallet">
+        <span class="xp-bolt-icon">⚡</span>
+        <strong id="topXpBalanceText">0 XP</strong>
+        <span class="xp-shop-badge">🛍️ Theme Shop</span>
       </button>
 
-      <!-- Theme Vibe Switcher -->
-      <div class="segmented-control" id="vibeSelector" title="Pilih Nuansa Tema">
-        <button class="seg-btn active" data-vibe="pastel-bento">🎨 Semua</button>
-        <button class="seg-btn" data-vibe="butter-pop">🌼 Pop</button>
-        <button class="seg-btn" data-vibe="pink-flow">🌸 Pink</button>
+      <!-- Appearance Mode Selector: Light / Dark / System -->
+      <div class="segmented-control color-mode-control" id="colorModeSelector" role="group" aria-label="Mode tampilan" title="Mode Tampilan: Terang, Gelap, atau Ikuti Sistem">
+        <button type="button" class="seg-btn" data-color-mode-btn="light" aria-label="Mode terang" aria-pressed="false" title="Light Mode (Mode Terang)">☀️</button>
+        <button type="button" class="seg-btn" data-color-mode-btn="dark" aria-label="Mode gelap" aria-pressed="false" title="Dark Mode (Mode Gelap)">🌙</button>
+        <button type="button" class="seg-btn active" data-color-mode-btn="system" aria-label="Ikuti sistem perangkat" aria-pressed="true" title="System Default (Ikuti Perangkat)">💻</button>
+      </div>
+
+      <!-- BEFORE LOGIN: Continue with Google Button -->
+      <button class="google-signin-pill-btn" id="topGoogleSignInBtn" title="Login dengan Google untuk sinkronisasi otomatis antar perangkat">
+        <svg class="google-g-icon" width="16" height="16" viewBox="0 0 48 48">
+          <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+          <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+          <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+          <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+        </svg>
+        <span id="topGoogleSignInText">Continue with Google</span>
+      </button>
+
+      <!-- AFTER LOGIN: Authenticated Google Account Pill & Dropdown -->
+      <div class="account-menu-wrapper hidden" id="topAccountMenuWrap">
+        <button class="account-pill-btn" id="topAccountMenuBtn" title="Akun Google & Sinkronisasi Cloud">
+          <img id="topAuthAvatarImg" src="" alt="Google Profile" class="account-pill-avatar" />
+          <span id="topAuthUserName" class="account-pill-name">Account</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+
+        <!-- Account Dropdown Menu -->
+        <div class="account-dropdown-popover hidden" id="accountMenuPopover">
+          <div class="account-popover-header">
+            <img id="popoverAuthAvatarImg" src="" alt="Avatar" class="popover-avatar-lg" />
+            <div class="popover-user-info">
+              <strong id="popoverAuthName">Nama Pengguna</strong>
+              <span id="popoverAuthEmail">email@gmail.com</span>
+              <span class="popover-sync-badge" id="popoverSyncBadge">✓ Saved to Cloud</span>
+            </div>
+          </div>
+          <div class="account-popover-actions">
+            <button type="button" class="popover-action-item" id="popoverOpenThemeShopBtn">
+              <span>🛍️ Theme Shop &amp; XP Wallet</span>
+            </button>
+            <button type="button" class="popover-action-item" id="popoverEditProfileBtn">
+              <span>🎓 Edit Profil Kampus &amp; Foto</span>
+            </button>
+            <button type="button" class="popover-action-item" id="popoverOpenSyncSettingsBtn">
+              <span>☁️ Cloud &amp; Backup (.json)</span>
+            </button>
+            <button type="button" class="popover-action-item" id="popoverSwitchAccountBtn">
+              <span>🔄 Ganti Akun Google</span>
+            </button>
+            <hr class="popover-divider" />
+            <button type="button" class="popover-action-item danger" id="googleSignOutBtn">
+              <span>🚪 Sign Out (Keluar)</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Desktop/Mobile Frame Preview Toggle -->
@@ -89,6 +174,15 @@
         </div>
       </div>
 
+      <!-- Custom Decorative Theme Scene Banner (Christmas Santa & Reindeer / Nature Otter & Birds / Antarctica Penguins) -->
+      <div class="theme-stage-banner hidden" id="themeStageBanner">
+        <div class="theme-stage-art" id="themeStageArt" aria-hidden="true"></div>
+        <div class="theme-stage-badge-bar">
+          <span class="theme-stage-label" id="themeStageLabel"></span>
+          <button type="button" class="theme-stage-switch-btn" id="themeStageOpenShopBtn">Ganti Tema</button>
+        </div>
+      </div>
+
       <!-- User Greeting Header -->
       <section class="user-greeting-bar">
         <div class="user-profile-trigger" id="editProfileBtn" title="Klik untuk ubah profil, jurusan, kampus & foto">
@@ -102,6 +196,9 @@
         </div>
 
         <div class="greeting-actions">
+          <button class="circle-glass-btn" id="openThemeShopQuickBtn" title="Theme Shop & XP Wallet">
+            <span>🎨</span>
+          </button>
           <button class="circle-glass-btn" id="openSearchModalBtn" title="Cari Tugas atau Catatan (Ctrl+K)">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </button>
@@ -142,7 +239,7 @@
           <!-- LEFT / TOP COLUMN: Butter Yellow Hero Card (Top-Left Reference Screen) -->
           <section class="butter-hero-card">
             <div class="butter-card-top">
-              <span class="pill-tag-mini">✨ Ruang Akademik Aktif</span>
+              <span class="pill-tag-mini" id="heroActiveThemeBadge">✨ Ruang Akademik Aktif</span>
               <span class="today-date-chip" id="heroTodayDate">Jumat, 16 Okt</span>
             </div>
 
@@ -198,41 +295,56 @@
 
                 <!-- 3 Interactive Rounded White Pill Rows inside Sage Card -->
                 <div class="sage-list-rows" id="sageQuickList">
-                  <!-- Populated dynamically by app.js -->
+                  <!-- Populated dynamically by client.js -->
                 </div>
               </div>
             </div>
           </section>
 
-          <!-- MIDDLE / RIGHT COLUMN: Lavender Progress Card + Blush 4-Metric Card + 2x2 Bento Grid -->
+          <!-- MIDDLE / RIGHT COLUMN: Weekly Productivity Widget + Lavender Progress Card + Blush 4-Metric Card + 2x2 Bento Grid -->
           <div class="bento-right-column">
 
-            <!-- Lavender "Your Progress" Card (Bottom-Middle Reference Screen) -->
-            <section class="lavender-progress-card">
+            <!-- Lavender "Your Progress" + Weekly XP Productivity Widget -->
+            <section class="lavender-progress-card" id="weeklyProductivityWidget">
               <div class="progress-card-left">
                 <div class="progress-title-row">
-                  <span class="mini-square-badge">📈</span>
-                  <span class="progress-card-heading">Progres Tugasmu</span>
+                  <span class="mini-square-badge">⚡</span>
+                  <span class="progress-card-heading" id="weeklyProductivityHeading">Weekly Productivity</span>
+                  <span class="weekly-cycle-pill" id="weeklyCycleBadge" title="Jadwal Reset: Senin 00:00 WIB (Asia/Jakarta)">Sen–Min WIB</span>
                 </div>
                 <div class="progress-giant-pct" id="dashboardProgressPct">0%</div>
-                <button class="progress-date-dropdown" id="progressFilterBtn">
-                  <span id="progressDateLabel">Minggu Ini</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
+                <div class="weekly-widget-meta">
+                  <strong class="weekly-tasks-count-label" id="weeklyTasksCountText">0 / 5 Tasks Completed</strong>
+                  <div class="weekly-mini-progress-track" id="weeklyTasksProgressTrack" role="progressbar" aria-labelledby="weeklyProductivityHeading" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0" aria-valuetext="0 dari 5 tugas selesai" title="Target Mingguan: 5 Tugas Selesai = +500 XP">
+                    <div class="weekly-mini-progress-fill" id="weeklyTasksProgressBar" style="width: 0%"></div>
+                  </div>
+                  <div class="weekly-reward-badges-row">
+                    <span class="weekly-reward-pill" id="weeklyRewardAmountBadge">Reward: +500 XP</span>
+                    <span class="weekly-status-tag" id="weeklyRewardStatusText">0/5 Minggu Ini</span>
+                  </div>
+                </div>
+                <div class="weekly-widget-actions">
+                  <button type="button" class="progress-date-dropdown" id="claimWeeklyRewardBtn">
+                    <span id="progressDateLabel">🎁 Klaim +500 XP (0/5)</span>
+                  </button>
+                  <button type="button" class="progress-shop-link-btn" id="widgetOpenThemeShopBtn" title="Buka XP Wallet & Theme Shop">
+                    <span>🛍️ Theme Shop</span>
+                  </button>
+                </div>
               </div>
 
               <div class="progress-card-right">
-                <div class="circular-gauge-wrap">
-                  <div class="flame-badge" title="Streak Produktif Kampus">🔥</div>
+                <button type="button" class="circular-gauge-wrap" id="openXpWalletGaugeBtn" aria-label="Buka XP Wallet dan riwayat transaksi" title="Klik untuk melihat XP Wallet & Riwayat Transaksi">
+                  <div class="flame-badge" title="Saldo XP Aktif">⚡</div>
                   <svg class="progress-ring-svg" width="116" height="116" viewBox="0 0 116 116">
                     <circle class="ring-bg" cx="58" cy="58" r="46" />
                     <circle class="ring-fill" id="progressRingCircle" cx="58" cy="58" r="46" stroke-dasharray="289" stroke-dashoffset="72" />
                   </svg>
                   <div class="ring-center-content">
                     <span class="ring-score-num" id="progressRingPoints">0</span>
-                    <span class="ring-score-sub" id="progressRingUnit">XP Fokus</span>
+                    <span class="ring-score-sub" id="progressRingUnit">XP Balance</span>
                   </div>
-                </div>
+                </button>
               </div>
             </section>
 
@@ -612,12 +724,15 @@
                   <span class="note-word-count" id="noteWordCount">0 kata</span>
                 </div>
 
-                <input type="text" id="activeNoteTitleInput" class="note-title-input" placeholder="Judul Catatan Kuliah..." />
+                <input type="text" id="activeNoteTitleInput" class="note-title-input" aria-label="Judul catatan" placeholder="Judul Catatan Kuliah..." />
 
                 <div
                   id="activeNoteBodyEditor"
                   class="note-body-contenteditable"
                   contenteditable="true"
+                  role="textbox"
+                  aria-label="Isi catatan"
+                  aria-multiline="true"
                   data-placeholder="Mulai ketik catatan kuliahmu di sini... Semua perubahan otomatis tersimpan online di link ruang kerjamu ✨"
                 ></div>
               </div>
@@ -790,62 +905,151 @@
   </div>
 
   <!-- ===================================================================
-       MODAL 2: ONLINE CLOUD SYNC & PERMANENT LINK MANAGER
+       MODAL 2: GOOGLE CLOUD SYNC & BACKUP MANAGER
        =================================================================== -->
   <div class="modal-backdrop hidden" id="syncModalBackdrop">
     <div class="modal-card modal-lg">
       <div class="modal-header">
-        <h3>☁️ Penyimpanan Online &amp; Link Permanen</h3>
+        <h3>☁️ Google Cloud Sync &amp; Backup</h3>
         <button class="modal-close-btn" data-close-modal="syncModalBackdrop">✕</button>
       </div>
 
       <div class="sync-modal-body">
-        <div class="sync-hero-banner">
-          <div class="sync-banner-icon">🔗</div>
-          <div>
-            <h4>Catatan &amp; Tugasmu Tersimpan Otomatis!</h4>
-            <p>Aplikasi ini menggunakan <strong>4 Lapis Penyimpanan Online &amp; Link Pintar</strong>: Database Cloud Server, Smart Permalink (data terenkripsi di dalam URL), IndexedDB, dan LocalStorage. Saat link dibuka kembali kapan saja, catatanmu dijamin aman dan tidak hilang.</p>
+        <!-- Google Cloud Account Banner -->
+        <div class="sync-hero-banner" id="syncModalAuthBanner">
+          <div class="sync-banner-icon">☁️</div>
+          <div style="flex:1;">
+            <h4 id="syncModalAuthTitle">Sinkronisasi Otomatis Antar Perangkat</h4>
+            <p id="syncModalAuthDesc">Login dengan akun Google untuk menyimpan dan menyinkronkan catatan, tugas harian, jadwal kalender, dan mata kuliah secara otomatis di laptop maupun HP tanpa perlu ekspor file manual.</p>
+            <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <button type="button" class="google-signin-pill-btn" id="modalGoogleSignInBtn">
+                <svg class="google-g-icon" width="16" height="16" viewBox="0 0 48 48">
+                  <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                  <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                  <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                  <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+                </svg>
+                <span>Continue with Google</span>
+              </button>
+              <button type="button" class="secondary-pill-btn hidden" id="modalGoogleSignOutBtn">🚪 Sign Out</button>
+            </div>
           </div>
         </div>
 
-        <!-- Option 1: Instant Shareable Link with Embedded Snapshot -->
+        <!-- Option 1: Backup & Restore JSON File (Kept as Optional Backup Feature) -->
         <div class="sync-section-box">
-          <label class="sync-box-label">1. Link Permanen Catatanmu (Bisa Dibuka di HP / Laptop Lain)</label>
-          <p class="sync-box-help">Link ini membawa ID Ruang Kerjamu sekaligus cadangan penuh catatanmu. Bookmark atau bagikan link ini ke WhatsApp/Telegram pribadimu:</p>
+          <label class="sync-box-label">1. Cadangan Manual Opsional (Export / Import JSON)</label>
+          <p class="sync-box-help">Fitur ekspor dan impor file JSON tetap tersedia sebagai cadangan lokal tambahan kapan pun kamu membutuhkannya:</p>
+          <div class="backup-btns-row">
+            <button class="secondary-pill-btn" id="exportJsonBtn">⬇️ Export Backup (.json)</button>
+            <label class="secondary-pill-btn file-upload-label">
+              ⬆️ Import dari File (.json)
+              <input type="file" id="importJsonInput" accept=".json" hidden />
+            </label>
+            <button class="secondary-pill-btn hidden" id="restorePreMigrationBackupBtn">↺ Pulihkan Cadangan Lokal Sebelum Login</button>
+            <button class="secondary-pill-btn danger-text" id="resetDemoDataBtn">🗑️ Kosongkan Semua Catatan &amp; Tugas</button>
+          </div>
+        </div>
+
+        <!-- Option 2: Instant Shareable Link -->
+        <div class="sync-section-box">
+          <label class="sync-box-label">2. Link Snapshot Ruang Kerja</label>
+          <p class="sync-box-help">Salin link snapshot atau kode ruang kerja lokal:</p>
           <div class="copy-input-group">
             <input type="text" id="shareableFullLinkInput" readonly />
             <button class="primary-dark-btn" id="copyFullLinkModalBtn">📋 Salin Link</button>
           </div>
-        </div>
-
-        <!-- Option 2: Custom Workspace Code (Room ID) -->
-        <div class="sync-section-box">
-          <label class="sync-box-label">2. Kode Ruang Kerja Online (Cloud Workspace ID)</label>
-          <p class="sync-box-help">Gunakan kode unik (misal: <code>ruang-kuliahku</code>) agar semua perubahan tersinkronisasi secara real-time di server:</p>
-          <div class="copy-input-group">
-            <input type="text" id="workspaceCodeInput" placeholder="contoh: kampus-utama" />
+          <div class="copy-input-group" style="margin-top:6px;">
+            <input type="text" id="workspaceCodeInput" placeholder="contoh: ruang-kuliahku" />
             <button class="secondary-pill-btn" id="switchWorkspaceBtn">🔄 Gunakan Kode</button>
           </div>
         </div>
 
-        <!-- Option 3: Backup & Restore JSON File -->
-        <div class="sync-section-box">
-          <label class="sync-box-label">3. Ekspor / Impor &amp; Reset Ruang Kerja</label>
-          <div class="backup-btns-row">
-            <button class="secondary-pill-btn" id="exportJsonBtn">⬇️ Unduh Backup (.json)</button>
-            <label class="secondary-pill-btn file-upload-label">
-              ⬆️ Pulihkan dari File (.json)
-              <input type="file" id="importJsonInput" accept=".json" hidden />
-            </label>
-            <button class="secondary-pill-btn danger-text" id="resetDemoDataBtn">🗑️ Kosongkan Semua Catatan &amp; Tugas</button>
+        <!-- Option 3: Firebase Environment Configuration Status / Runtime Config -->
+        <details class="sync-section-box" id="firebaseConfigDetailsBox">
+          <summary class="sync-box-label" style="cursor:pointer;">⚙️ Status Konfigurasi Firebase Cloud (<span id="firebaseConfigStatusLabel">Memeriksa...</span>)</summary>
+          <p class="sync-box-help" style="margin-top:8px;">
+            Secara produksi di Vercel, konfigurasi Firebase dimuat otomatis dari Environment Variables (<code>FIREBASE_API_KEY</code>, <code>FIREBASE_AUTH_DOMAIN</code>, <code>FIREBASE_PROJECT_ID</code>, <code>FIREBASE_APP_ID</code>). Jika belum diatur di Vercel Environment Variables, kamu juga dapat menempelkan objek JSON konfigurasi Firebase Web App di bawah ini:
+          </p>
+          <textarea id="firebaseRuntimeConfigInput" rows="4" style="width:100%; margin-top:6px; font-family:var(--font-mono); font-size:0.76rem; background:#FFF; padding:10px; border-radius:12px; border:1px solid rgba(0,0,0,0.12);" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button type="button" class="primary-dark-btn btn-sm" id="saveFirebaseRuntimeConfigBtn">Simpan &amp; Hubungkan Firebase</button>
+            <button type="button" class="secondary-pill-btn" id="clearFirebaseRuntimeConfigBtn">Reset Config Lokal</button>
           </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 3: FIRST-LOGIN LOCAL DATA MIGRATION DIALOG
+       =================================================================== -->
+  <div class="modal-backdrop hidden" id="migrationModalBackdrop">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <h3>☁️ Sinkronisasi &amp; Migrasi Data ke Akun Google</h3>
+      </div>
+
+      <div class="sync-modal-body">
+        <div class="sync-hero-banner">
+          <div class="sync-banner-icon">🔄</div>
+          <div>
+            <h4 id="migrationAccountHeading">Data Lokal Terdeteksi di Perangkat Ini</h4>
+            <p id="migrationAccountSubtext">Kami mendeteksi adanya catatan/tugas yang sebelumnya tersimpan secara lokal di browser ini. Pilih bagaimana kamu ingin menyinkronkannya dengan akun Google-mu:</p>
+          </div>
+        </div>
+
+        <div class="migration-comparison-grid">
+          <div class="migration-stat-box">
+            <span class="mig-box-tag">💻 Data Lokal di Browser Ini</span>
+            <strong id="migrationLocalSummary">0 Tugas • 0 Catatan</strong>
+            <span id="migrationLocalProfileInfo" class="mig-box-sub">Profil Lokal</span>
+          </div>
+          <div class="migration-stat-box">
+            <span class="mig-box-tag">☁️ Data di Akun Google Cloud</span>
+            <strong id="migrationCloudSummary">0 Tugas • 0 Catatan</strong>
+            <span id="migrationCloudAccountType" class="mig-box-sub">Status Akun Cloud</span>
+          </div>
+        </div>
+
+        <!-- Progress Indicator during migration -->
+        <div class="migration-progress-box hidden" id="migrationProgressBox">
+          <div class="mig-spinner"></div>
+          <span id="migrationProgressText">Menyinkronkan data ke Google Cloud Firestore...</span>
+        </div>
+
+        <!-- 3 Required Migration Options -->
+        <div class="migration-actions-stack" id="migrationActionsStack">
+          <button type="button" class="migration-option-btn primary" id="migrationMergeBtn">
+            <div class="mig-opt-left">
+              <strong>✨ Merge Local Data with Cloud Data (Rekomendasi)</strong>
+              <span>Gabungkan semua catatan, tugas &amp; mata kuliah lokal ke akun Google-mu tanpa menghapus data cloud yang sudah ada.</span>
+            </div>
+            <span class="mig-opt-arrow">→</span>
+          </button>
+
+          <button type="button" class="migration-option-btn" id="migrationUseCloudBtn">
+            <div class="mig-opt-left">
+              <strong>☁️ Use Existing Cloud Data</strong>
+              <span>Gunakan data dari akun Google Cloud (data lokal tetap disimpan di cadangan pemulihan).</span>
+            </div>
+            <span class="mig-opt-arrow">→</span>
+          </button>
+
+          <button type="button" class="migration-option-btn cancel" id="migrationCancelBtn">
+            <div class="mig-opt-left">
+              <strong>✕ Cancel and Keep Local Data</strong>
+              <span>Batalkan login Google sekarang dan tetap gunakan penyimpanan lokal perangkat ini.</span>
+            </div>
+            <span class="mig-opt-arrow">→</span>
+          </button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- ===================================================================
-       MODAL 3: POMODORO FOCUS TIMER
+       MODAL 4: POMODORO FOCUS TIMER
        =================================================================== -->
   <div class="modal-backdrop hidden" id="pomodoroModalBackdrop">
     <div class="modal-card modal-sm pomodoro-modal-card">
@@ -877,7 +1081,7 @@
   </div>
 
   <!-- ===================================================================
-       MODAL 4: GLOBAL SEARCH (Ctrl+K)
+       MODAL 5: GLOBAL SEARCH (Ctrl+K)
        =================================================================== -->
   <div class="modal-backdrop hidden" id="searchModalBackdrop">
     <div class="modal-card">
@@ -893,7 +1097,7 @@
   </div>
 
   <!-- ===================================================================
-       MODAL 5: EDIT PROFILE, AVATAR & MATA KULIAH
+       MODAL 6: EDIT PROFILE, AVATAR & MATA KULIAH
        =================================================================== -->
   <div class="modal-backdrop hidden" id="profileModalBackdrop">
     <div class="modal-card modal-lg">
@@ -952,7 +1156,165 @@
   </div>
 
   <!-- ===================================================================
-       WELCOME ONBOARDING SCREEN (Shown on First Entry — Requires Name, Major, Campus & Avatar)
+       MODAL 7: THEME SHOP, DARK MODE & XP WALLET
+       =================================================================== -->
+  <div class="modal-backdrop hidden" id="themeShopModalBackdrop">
+    <div class="modal-card modal-xl theme-shop-modal-card" role="dialog" aria-modal="true" aria-labelledby="themeShopTitle" aria-describedby="themeShopDescription" tabindex="-1">
+      <div class="modal-header">
+        <div>
+          <h3 id="themeShopTitle">🛍️ Nugasin Theme Shop &amp; XP Wallet</h3>
+          <p class="shop-subtitle" id="themeShopDescription">Selesaikan 5 tugas/minggu untuk mendapat +500 XP &amp; buka tema karakter permanen!</p>
+        </div>
+        <button class="modal-close-btn" data-close-modal="themeShopModalBackdrop" aria-label="Tutup Theme Shop">✕</button>
+      </div>
+
+      <!-- Top Bar inside Shop: Balance + Appearance Mode + Animation Toggle + Tabs -->
+      <div class="shop-top-toolbar">
+        <div class="shop-balance-pill">
+          <span class="xp-bolt-icon">⚡</span>
+          <div>
+            <small>Spendable XP Balance</small>
+            <strong id="shopModalXpBalance">0 XP</strong>
+          </div>
+        </div>
+
+        <div class="shop-appearance-controls">
+          <div class="shop-control-group">
+            <span class="shop-ctrl-label">Mode Tampilan:</span>
+            <div class="segmented-control" id="modalColorModeSelector" role="group" aria-label="Mode tampilan">
+              <button type="button" class="seg-btn" data-color-mode-btn="light" aria-pressed="false">☀️ Light</button>
+              <button type="button" class="seg-btn" data-color-mode-btn="dark" aria-pressed="false">🌙 Dark</button>
+              <button type="button" class="seg-btn active" data-color-mode-btn="system" aria-pressed="true">💻 System</button>
+            </div>
+          </div>
+
+          <label class="shop-anim-toggle-pill" title="Matikan jika ingin menghemat baterai atau mengurangi gerakan dekorasi">
+            <input type="checkbox" id="toggleThemeAnimationsInput" checked />
+            <span>✨ Animasi Karakter &amp; Partikel</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Shop Navigation Tabs: Theme Marketplace vs XP Wallet -->
+      <p class="economy-sync-notice" id="economySyncNotice" role="status" aria-live="polite">Masuk dengan Google untuk menyinkronkan XP dan tema milikmu.</p>
+      <div class="shop-section-tabs" role="group" aria-label="Bagian Theme Shop">
+        <button type="button" class="shop-tab-btn active" data-shop-tab="marketplace" id="shopTabMarketplaceBtn" aria-controls="shopPanelMarketplace" aria-pressed="true">
+          🎨 Theme Marketplace (4 Tema)
+        </button>
+        <button type="button" class="shop-tab-btn" data-shop-tab="wallet" id="shopTabWalletBtn" aria-controls="shopPanelWallet" aria-pressed="false">
+          👛 XP Wallet &amp; Riwayat Transaksi
+        </button>
+      </div>
+
+      <!-- TAB 1: THEME MARKETPLACE -->
+      <div class="shop-tab-panel" id="shopPanelMarketplace">
+        <div class="theme-shop-grid" id="themeShopGrid">
+          <!-- Populated dynamically by client.js with Default, Christmas 🎄, Nature 🌿, Antarctica 🐧 -->
+        </div>
+      </div>
+
+      <!-- TAB 2: XP WALLET & TRANSACTION HISTORY -->
+      <div class="shop-tab-panel hidden" id="shopPanelWallet">
+        <div class="xp-wallet-metrics-grid">
+          <div class="xp-wallet-stat-card balance">
+            <span class="wallet-stat-tag">⚡ Spendable XP Balance</span>
+            <strong id="walletCurrentXpValue">0 XP</strong>
+            <small>Saldo XP aktif yang siap dibelanjakan di Theme Shop</small>
+          </div>
+          <div class="xp-wallet-stat-card lifetime">
+            <span class="wallet-stat-tag">🏆 Total Lifetime XP Earned</span>
+            <strong id="walletLifetimeXpValue">0 XP</strong>
+            <small>Akumulasi seluruh XP yang pernah diperoleh</small>
+          </div>
+          <div class="xp-wallet-stat-card spent">
+            <span class="wallet-stat-tag">🛍️ Total XP Spent</span>
+            <strong id="walletSpentXpValue">0 XP</strong>
+            <small>Total XP yang telah ditukarkan untuk membuka tema</small>
+          </div>
+        </div>
+
+        <!-- Weekly Productivity Breakdown inside Wallet -->
+        <div class="wallet-weekly-summary-box">
+          <div class="wallet-weekly-left">
+            <h4 id="walletWeeklyHeading">Target Produktivitas Minggu Ini</h4>
+            <p id="walletWeeklyDesc">Selesaikan 5 tugas valid (Senin 00:00 – Minggu 23:59 WIB) untuk klaim hadiah +500 XP sekali per minggu.</p>
+          </div>
+          <div class="wallet-weekly-right">
+            <span class="wallet-weekly-count" id="walletWeeklyCountBadge">0 / 5 Tasks</span>
+            <button type="button" class="primary-dark-btn btn-sm" id="walletClaimWeeklyBtn">🎁 Klaim +500 XP</button>
+          </div>
+        </div>
+
+        <!-- Unlocked / Purchased Themes List -->
+        <div class="wallet-section-block">
+          <h4>🎨 Tema yang Dimiliki (<span id="walletOwnedThemesCount">1</span>/4)</h4>
+          <div class="wallet-owned-themes-row" id="walletOwnedThemesList"></div>
+        </div>
+
+        <!-- XP Transaction History Ledger -->
+        <div class="wallet-section-block">
+          <h4>📜 Riwayat Transaksi XP</h4>
+          <div class="wallet-history-list" id="walletHistoryList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 8: THEME PURCHASE CONFIRMATION DIALOG (3,000 XP)
+       =================================================================== -->
+  <div class="modal-backdrop hidden" id="purchaseConfirmModalBackdrop">
+    <div class="modal-card modal-sm purchase-confirm-card" role="dialog" aria-modal="true" aria-labelledby="purchaseConfirmTitle" aria-describedby="purchaseConfirmThemeDesc" tabindex="-1">
+      <div class="modal-header">
+        <h3 id="purchaseConfirmTitle">🛍️ Konfirmasi Pembelian Tema</h3>
+        <button class="modal-close-btn" data-close-modal="purchaseConfirmModalBackdrop" aria-label="Tutup konfirmasi pembelian">✕</button>
+      </div>
+      <div class="modal-body-pad">
+        <div class="purchase-confirm-preview" id="purchaseConfirmPreviewBox"></div>
+        <h4 id="purchaseConfirmThemeTitle" style="font-size:1.15rem; font-weight:800; text-align:center;">Christmas Theme 🎄</h4>
+        <p id="purchaseConfirmThemeDesc" style="font-size:0.82rem; color:var(--text-secondary); text-align:center;">
+          Tema ini akan terbuka secara permanen di akunmu dan dapat digunakan di Light Mode maupun Dark Mode.
+        </p>
+
+        <div class="purchase-ledger-summary">
+          <div class="ledger-row">
+            <span>Saldo XP Saat Ini</span>
+            <strong id="purchaseCurrentBalanceText">0 XP</strong>
+          </div>
+          <div class="ledger-row deduct">
+            <span>Harga Tema (<span id="purchaseThemeNameInline">Christmas</span>)</span>
+            <strong id="purchasePriceText">-3,000 XP</strong>
+          </div>
+          <div class="ledger-row total">
+            <span>Sisa Saldo XP Setelah Beli</span>
+            <strong id="purchaseRemainingBalanceText">0 XP</strong>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="justify-content:space-between; width:100%;">
+          <button type="button" class="secondary-pill-btn" data-close-modal="purchaseConfirmModalBackdrop">Batal</button>
+          <button type="button" class="primary-dark-btn" id="confirmThemePurchaseBtn">⚡ Beli Sekarang (-3.000 XP)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       CELEBRATORY WEEKLY GOAL REWARD BANNER (+500 XP)
+       =================================================================== -->
+  <div class="weekly-goal-celebration hidden" id="weeklyGoalCelebrationBanner" role="status" aria-live="polite">
+    <div class="celebration-card">
+      <div class="celebration-icon-badge">🎉</div>
+      <div class="celebration-text">
+        <strong>Weekly Goal Completed! 🎉</strong>
+        <span>You earned <b>+500 XP</b>! (5/5 Tugas Minggu Ini Tuntas)</span>
+      </div>
+      <button type="button" class="celebration-close-btn" id="closeCelebrationBannerBtn" aria-label="Tutup">✕</button>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       WELCOME ONBOARDING SCREEN (Shown on First Entry — Supports Google Sign-In or Manual Setup)
        =================================================================== -->
   <div class="onboarding-overlay" id="onboardingOverlay">
     <div class="onboarding-card">
@@ -966,7 +1328,24 @@
         Selamat Datang!<br />
         <em>Kenalan dulu yuk ✨</em>
       </h2>
-      <p class="onboarding-subtitle">Isi identitas kampusmu dan pilih foto profil sebelum mulai mencatat tugas harianmu.</p>
+      <p class="onboarding-subtitle">Login dengan Google untuk memulihkan &amp; menyinkronkan catatanmu di semua perangkat, atau lengkapi profil kampusmu di bawah.</p>
+
+      <!-- Google Cloud Sign-In Quick Box on Onboarding -->
+      <div class="onboarding-google-box" id="onboardingGoogleBox">
+        <div class="onboarding-google-info">
+          <strong>☁️ Sinkronisasi Cloud Otomatis</strong>
+          <span>Sudah punya akun atau ingin data tersimpan di Google Cloud?</span>
+        </div>
+        <button type="button" class="google-signin-pill-btn" id="onboardingGoogleSignInBtn">
+          <svg class="google-g-icon" width="16" height="16" viewBox="0 0 48 48">
+            <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+            <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+            <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+            <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+      </div>
 
       <form id="onboardingForm" class="onboarding-form">
         <!-- Avatar Selection Section (Upload Photo OR Choose Boy/Girl Preset) -->
@@ -1030,6 +1409,10 @@
   <!-- Confetti Canvas for Task Completion Celebration -->
   <canvas id="confettiCanvas" class="confetti-canvas" aria-hidden="true"></canvas>
 
+  <!-- Official Firebase Client SDK (App, Auth, Firestore) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="client.js"></script>
 </body>
 </html>

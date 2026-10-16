@@ -2,3 +2,12 @@ local-server.js
 data/
 node_modules/
 .git/
+.npm-cache/
+.firebase/
+dist/
+tests/
+firestore-debug.log*
+firebase-debug.log*
+.env
+.env.*
+!.env.example
